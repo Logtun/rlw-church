@@ -2,15 +2,15 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/:t(firsttimers|workers|birthdays|quiz)/",
+      "source": "/:t(firsttimers|workers|birthdays|quiz|youth)/",
       "destination": "https://rlw-church.sites.tab.bot/:t/"
     },
     {
-      "source": "/:t(firsttimers|workers|birthdays|quiz)",
+      "source": "/:t(firsttimers|workers|birthdays|quiz|youth)",
       "destination": "https://rlw-church.sites.tab.bot/:t/"
     },
     {
-      "source": "/:t(firsttimers|workers|birthdays|quiz)/:path(.*)",
+      "source": "/:t(firsttimers|workers|birthdays|quiz|youth)/:path(.*)",
       "destination": "https://rlw-church.sites.tab.bot/:t/:path"
     }
   ]

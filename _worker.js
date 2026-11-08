@@ -1,5 +1,5 @@
 // RCCG Rivers of Living Water Parish - unified site.
-// Serves the homepage files and passes /firsttimers, /workers, /birthdays and /quiz to each tool's own site.
+// Serves the homepage files and passes /firsttimers, /workers, /birthdays, /quiz and /youth to each tool's own site.
 // No data lives here: every tool keeps its own storage. Domain-agnostic: links use the request's own origin.
 const PROXY_KEY = "REPLACE_WITH_YOUR_PROXY_KEY"; // shared with the tools so they trust the visitor IP and base address we forward
 const TOOLS = {
@@ -7,6 +7,7 @@ const TOOLS = {
   workers: { up: "https://rlw-workers.sites.tab.bot", name: "Workers' Attendance" },
   birthdays: { up: "https://rlw-birthdays.sites.tab.bot", name: "Birthdays" },
   quiz: { up: "https://rlw-bible-quiz.sites.tab.bot", name: "Bible Quiz Night" },
+  youth: { up: "https://rlw-youth.sites.tab.bot", name: "Youth Cave" },
 };
 const HOP = ["host", "connection", "keep-alive", "transfer-encoding", "upgrade", "proxy-connection", "te", "trailer",
   "cf-connecting-ip", "cf-ipcountry", "cf-ray", "cf-visitor", "cf-worker", "x-real-ip", "x-forwarded-host", "x-forwarded-proto",
@@ -72,7 +73,7 @@ async function proxy(req, url, tool, rest) {
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
-    const m = url.pathname.match(/^\/(firsttimers|workers|birthdays|quiz)(\/.*)?$/i);
+    const m = url.pathname.match(/^\/(firsttimers|workers|birthdays|quiz|youth)(\/.*)?$/i);
     if (m) {
       const tool = m[1].toLowerCase();
       if (!m[2] || m[1] !== tool) return Response.redirect(url.origin + "/" + tool + (m[2] || "/") + url.search, 301);
