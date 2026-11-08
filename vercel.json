@@ -9,6 +9,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/sermons",
+      "destination": "https://rlw-church.sites.tab.bot/api/sermons"
+    },
+    {
       "source": "/:t(firsttimers|workers|birthdays|quiz|youth|records)/",
       "destination": "https://rlw-church.sites.tab.bot/:t/"
     },
@@ -19,6 +23,30 @@
     {
       "source": "/:t(firsttimers|workers|birthdays|quiz|youth|records)/:path(.*)",
       "destination": "https://rlw-church.sites.tab.bot/:t/:path"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
+        }
+      ]
     }
   ]
 }

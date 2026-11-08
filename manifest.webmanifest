@@ -1,0 +1,65 @@
+{
+ "name": "RCCG Rivers of Living Water Parish",
+ "short_name": "RLW Parish",
+ "description": "Rivers of Living Water Parish (RCCG), Magboro: services, sermons and our church tools in one place.",
+ "id": "/",
+ "start_url": "/",
+ "scope": "/",
+ "display": "standalone",
+ "orientation": "portrait",
+ "theme_color": "#1B2A6B",
+ "background_color": "#ffffff",
+ "lang": "en",
+ "icons": [
+  {
+   "src": "/icons/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "/icons/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "/icons/icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ],
+ "shortcuts": [
+  {
+   "name": "Latest sermons",
+   "url": "/#sermons",
+   "icons": [
+    {
+     "src": "/icons/icon-192.png",
+     "sizes": "192x192"
+    }
+   ]
+  },
+  {
+   "name": "Youth Cave",
+   "url": "/youth/",
+   "icons": [
+    {
+     "src": "/icons/icon-192.png",
+     "sizes": "192x192"
+    }
+   ]
+  },
+  {
+   "name": "First-Timer Check-in",
+   "url": "/firsttimers/",
+   "icons": [
+    {
+     "src": "/icons/icon-192.png",
+     "sizes": "192x192"
+    }
+   ]
+  }
+ ]
+}
