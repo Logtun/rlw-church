@@ -408,9 +408,7 @@ details.pl-ex>summary{cursor:pointer;font-weight:700;color:var(--navy);font-size
 
 /* compact tab bar on phones: one scrolling row instead of a wall of words */
 @media(max-width:719px){
-  .tabs{overflow-x:auto;position:relative}
-  .tabin{flex-wrap:nowrap;justify-content:flex-start;padding:6px 10px;max-width:none;width:max-content;min-width:100%}
-  .tab{padding:8px 12px;font-size:14px}
+  .tab{padding:7px 10px;font-size:13.5px}
 }
 @media (prefers-reduced-motion:reduce){
   .wrap.tx,.wrap.stg>*,.wrap.stg .tile,.cd-dot{animation:none!important}
