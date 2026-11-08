@@ -71,6 +71,7 @@ function drawTabs() {
 }
 $("tabs").addEventListener("click", function (e) { var b = e.target.closest("[data-tab]"); if (b) go(b.getAttribute("data-tab")); });
 function go(t) {
+  if (t === "plans") PN.open = 0;
   cur = t; try { history.replaceState(null, "", "#" + t); } catch (e) {}
   drawTabs(); render();
   var a = document.querySelector('.tab[aria-current="page"]'); if (a && a.scrollIntoView) a.scrollIntoView({ block: "nearest", inline: "center" });
