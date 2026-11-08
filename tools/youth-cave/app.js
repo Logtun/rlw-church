@@ -60,9 +60,9 @@ $("logout").addEventListener("click", function () { api("api/logout", {}).catch(
 // ---------- boot ----------
 var TABS = [
   ["home", "Home"], ["notices", "Announcements"], ["events", "Events"], ["roster", "Duty roster"], ["minutes", "Minutes"],
-  ["offering", "Offering"], ["contrib", "Contributions"], ["exco", "Exco"], ["jobs", "Jobs"], ["suggest", "Suggestion box"], ["settings", "Settings"]
+  ["offering", "Offering"], ["contrib", "Contributions"], ["expenses", "Expenses"], ["exco", "Exco"], ["jobs", "Jobs"], ["suggest", "Suggestion box"], ["settings", "Settings"]
 ];
-function visibleTabs() { return TABS.filter(function (t) { if ((t[0] === "offering" || t[0] === "contrib") && !canMoney()) return false; if (t[0] === "settings" && !isExco()) return false; return true; }); }
+function visibleTabs() { return TABS.filter(function (t) { if ((t[0] === "offering" || t[0] === "contrib" || t[0] === "expenses") && !canMoney()) return false; if (t[0] === "settings" && !isExco()) return false; return true; }); }
 function drawTabs() {
   $("tabs").innerHTML = visibleTabs().map(function (t) {
     var dot = t[0] === "suggest" && isExco() && D.new_suggestions ? '<span class="dot">' + D.new_suggestions + "</span>" : "";
@@ -143,8 +143,10 @@ var FORMS = {
   actions: { title: "decision or action item", f: [["what", "Decision or action", "text", 1], ["who", "Who is responsible", "text"], ["due", "Due date", "date"], ["done", "Done", "bool"]] },
   roster: { title: "duty", f: [["date", "Date", "date", 1], ["duty", "Duty", "duty", 1], ["person", "Assigned to", "text"]] },
   exco: { title: "Exco member", f: [["name", "Name", "text", 1], ["role", "Role", "text", 1], ["phone", "Phone (optional)", "tel"], ["photo", "Photo", "image"], ["sort", "Order on the page (lower shows first)", "num"]] },
-  members: { title: "member", f: [["name", "Member name", "text", 1], ["sort", "Order (optional, lower shows first)", "num"]] }
+  members: { title: "member", f: [["name", "Member name", "text", 1], ["sort", "Order (optional, lower shows first)", "num"]] },
+  expenses: { title: "expense", f: [["date", "Date", "date", 1], ["item", "Item or description", "text", 1, "Bus hire to youth rally"], ["category", "Category (pick one or type your own)", "cat", 1], ["amount", "Amount (\u20A6)", "money", 1], ["paid_to", "Paid to (optional)", "text", 0, "Shop, driver or vendor"], ["approved_by", "Approved by / paid by (optional)", "text", 0, "Name"], ["notes", "Notes (optional)", "long"], ["receipt", "Receipt photo or PDF (optional)", "doc"]] }
 };
+var EXP_CATS = ["Transport", "Refreshments", "Events", "Welfare", "Printing & Publicity", "Media & Equipment", "Outreach", "Other"];
 var modalSubmit = null;
 function openModal(title, html, onSubmit) {
   $("mh").textContent = title; $("mform").innerHTML = html; modalSubmit = onSubmit;
@@ -167,6 +169,8 @@ function fieldHtml(fd, v) {
     return h + '<input type="file" id="' + id + '" accept="' + (t === "doc" ? "image/*,application/pdf" : "image/*") + '"><input type="hidden" id="' + id + '_key" value="' + esc(val) + '">' +
       '<div class="fprev" id="' + id + '_prev">' + (val ? (/\.pdf$/.test(val) ? "PDF attached" : '<img alt="" data-file="' + esc(val) + '">') + ' <button type="button" class="btn ghost sm" data-clear="' + id + '">Remove</button>' : "") + "</div>";
   }
+  if (t === "cat") { var cl = EXP_CATS.slice(); ((EX && EX.used_categories) || []).forEach(function (c) { if (c && cl.indexOf(c) < 0) cl.push(c); });
+    return h + '<input id="' + id + '" list="catlist" maxlength="40" autocomplete="off" value="' + esc(val) + '"' + rq + ' placeholder="Transport"><datalist id="catlist">' + cl.map(function (c) { return '<option value="' + esc(c) + '">'; }).join("") + "</datalist>"; }
   if (t === "duty") return h + '<input id="' + id + '" list="dutylist" value="' + esc(val) + '"' + rq + ' placeholder="Ushering"><datalist id="dutylist">' + DUTIES.map(function (d) { return "<option value=\"" + d + "\">"; }).join("") + "</datalist>";
   var type = t === "date" ? "date" : t === "time" ? "time" : t === "tel" ? "tel" : t === "num" ? "number" : "text";
   var extra = t === "money" ? ' inputmode="decimal" placeholder="25000"' : (ph ? ' placeholder="' + esc(ph) + '"' : "");
@@ -238,6 +242,7 @@ function render() {
   m.innerHTML = (R[cur] || R.home)();
   hydrateFiles(m);
   if (cur === "contrib") loadContrib();
+  if (cur === "expenses") loadExpenses();
   if (cur === "suggest" && isExco()) loadSuggestions();
   if (cur === "settings") loadSettings();
   if (cur === "jobs") { if (JB.loaded) drawJobs(); loadJobs(); }
@@ -250,6 +255,7 @@ $("main").addEventListener("click", function (e) {
     if (s === "actions") return editRow("actions", { minute_id: +b.getAttribute("data-mid") }, { minute_id: +b.getAttribute("data-mid") });
     var defaults = {}; if (s === "announcements" || s === "offerings" || s === "minutes" || s === "roster") defaults.date = ME.today;
     if (s === "offerings") defaults.title = "Sunday service";
+    if (s === "expenses") defaults.date = (exMonth && exMonth !== ME.today.slice(0, 7)) ? exMonth + "-01" : ME.today;
     if (s === "minutes") defaults.title = "Youth Exco meeting";
     return editRow(s, defaults);
   }
@@ -446,6 +452,59 @@ function saveCell(mid, mo, v) {
   }).catch(function () {});
 }
 
+// ---------- expenses ----------
+var exMonth = null, EX = null;
+function monthLabel(ym) { return MONTHS_L[+ym.slice(5, 7) - 1] + " " + ym.slice(0, 4); }
+function shiftMonth(ym, n) { var y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 1 + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; return y + "-" + (m < 9 ? "0" : "") + (m + 1); }
+R.expenses = function () {
+  if (!exMonth) exMonth = ME.today.slice(0, 7);
+  return head("Monthly expenses", "What the youth spent each month, with receipts. Amounts in Naira.", addBtn("expenses", "Add expense")) +
+    '<div class="tools exmon"><button class="btn ghost sm" type="button" data-exm="-1" aria-label="Previous month">&lsaquo;</button><label for="exM" class="sr">Month</label><input type="month" id="exM" value="' + exMonth + '"><button class="btn ghost sm" type="button" data-exm="1" aria-label="Next month">&rsaquo;</button></div>' +
+    '<div id="exWrap"><p class="muted">Loading...</p></div>';
+};
+function loadExpenses() {
+  var want = exMonth;
+  api("api/expenses?month=" + want).then(function (r) {
+    if (want !== exMonth || cur !== "expenses" || !$("exWrap")) return;
+    if (!r.ok) { $("exWrap").innerHTML = '<p class="err">' + esc(r.error) + "</p>"; return; }
+    EX = r; D.expenses = r.rows; drawExpenses();
+  }).catch(function () {});
+}
+function drawExpenses() {
+  var r = EX, lbl = monthLabel(r.month), max = Math.max.apply(null, r.cats.map(function (c) { return c.total; }).concat([1]));
+  var h = '<div class="card exsum"><h4>Month summary, ' + lbl + '</h4>' +
+    '<div class="sline"><span>Income</span><b>' + naira(r.income.total) + '</b></div>' +
+    '<div class="ssub">Offering ' + naira(r.income.offering) + ' + contributions ' + naira(r.income.contrib) + '</div>' +
+    '<div class="sline"><span>Expenses</span><b class="neg">&minus; ' + naira(r.total) + '</b></div>' +
+    '<div class="sline bal' + (r.balance < 0 ? " under" : "") + '"><span>Balance</span><b>' + (r.balance < 0 ? "&minus; " + naira(-r.balance) : naira(r.balance)) + "</b></div>" +
+    (r.balance < 0 ? '<p class="ssub">Spending is more than the income recorded for this month.</p>' : "") + "</div>";
+  h += '<div class="stats"><div class="stat"><small>' + MONTHS_L[+r.month.slice(5, 7) - 1] + ' total</small><b>' + naira(r.total) + '</b></div><div class="stat"><small>Entries</small><b>' + r.rows.length + "</b></div></div>";
+  if (r.cats.length) h += '<div class="card"><h4>By category</h4><div class="cbars">' + r.cats.map(function (c) {
+    return '<div class="cbar"><div class="cl"><span>' + esc(c.category) + "</span><b>" + naira(c.total) + '</b></div><div class="ct"><i style="width:' + Math.max(2, Math.round(c.total / max * 100)) + '%"></i></div></div>';
+  }).join("") + "</div></div>";
+  h += '<div class="tools"><button class="btn ghost sm" type="button" data-excsv="month">Download ' + MONTHS[+r.month.slice(5, 7) - 1] + " CSV</button>" +
+    '<button class="btn ghost sm" type="button" data-excsv="year">Download ' + r.month.slice(0, 4) + " CSV (whole year)</button></div>";
+  h += "<h3>Entries</h3>" + (r.rows.length ? r.rows.map(function (x) {
+    var meta = [fdate(x.date, true)]; if (x.paid_to) meta.push("Paid to " + esc(x.paid_to));
+    return '<article class="card"><div class="row"><div class="grow"><h4>' + esc(x.item) + '</h4><div class="meta"><span class="tag">' + esc(x.category) + "</span> " + meta.join(" &middot; ") + '</div></div><div class="amt neg">' + naira(x.amount) + "</div></div>" +
+      (x.approved_by ? '<div class="meta" style="margin-top:6px">Approved / paid by: ' + esc(x.approved_by) + "</div>" : "") + (x.notes ? '<p class="body">' + esc(x.notes) + "</p>" : "") + fileBlock(x.receipt, "Receipt for " + x.item) + editBtns("expenses", x.id) + "</article>";
+  }).join("") : '<p class="empty">No expenses recorded for ' + lbl + " yet." + (isExco() ? " Use Add expense to record one." : "") + "</p>");
+  $("exWrap").innerHTML = h; hydrateFiles($("exWrap"));
+}
+document.addEventListener("change", function (e) {
+  if (e.target.id === "exM") { var v = e.target.value; if (/^\d{4}-\d{2}$/.test(v)) { exMonth = v; $("exWrap").innerHTML = '<p class="muted">Loading...</p>'; loadExpenses(); } }
+});
+$("main").addEventListener("click", function (e) {
+  var b;
+  if ((b = e.target.closest("[data-exm]"))) { exMonth = shiftMonth(exMonth || ME.today.slice(0, 7), +b.getAttribute("data-exm")); $("exM").value = exMonth; $("exWrap").innerHTML = '<p class="muted">Loading...</p>'; loadExpenses(); return; }
+  if ((b = e.target.closest("[data-excsv]"))) {
+    var yr = b.getAttribute("data-excsv") === "year", q = yr ? "year=" + exMonth.slice(0, 4) : "month=" + exMonth, fn = "rlw-youth-expenses-" + (yr ? exMonth.slice(0, 4) : exMonth) + ".csv";
+    fetch("api/expenses.csv?" + q, { headers: { authorization: "Bearer " + token } }).then(function (r) { if (!r.ok) throw 0; return r.blob(); }).then(function (bl) {
+      var a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = fn; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    }).catch(function () { toast("Could not download. Please try again."); });
+  }
+});
+
 R.exco = function () {
   var ex = D.exco || [];
   return head("Youth Exco", "Our Youth Executive Committee.", addBtn("exco", "Add Exco member")) + (ex.length ? '<div class="exgrid">' + ex.map(function (x) {
@@ -499,7 +558,7 @@ $("main").addEventListener("click", function (e) {
 
 R.settings = function () {
   return head("Exco settings", "Only Exco can see this page.") +
-    '<div class="card"><h4>Money pages (offering and contributions) visible to</h4><form id="stMoney"><label class="radio"><input type="radio" name="money" value="exco"' + (ME.money === "exco" ? " checked" : "") + '><span><b>Exco only</b><br><span class="meta">Members will not see the Offering and Contributions pages.</span></span></label><label class="radio"><input type="radio" name="money" value="all"' + (ME.money === "all" ? " checked" : "") + '><span><b>All youth (view only)</b><br><span class="meta">Members can see them but cannot change anything.</span></span></label><button class="btn pri" type="submit">Save</button> <span id="stMsg" class="ok"></span></form></div>' +
+    '<div class="card"><h4>Money pages (offering, contributions and expenses) visible to</h4><form id="stMoney"><label class="radio"><input type="radio" name="money" value="exco"' + (ME.money === "exco" ? " checked" : "") + '><span><b>Exco only</b><br><span class="meta">Members will not see the Offering, Contributions and Expenses pages.</span></span></label><label class="radio"><input type="radio" name="money" value="all"' + (ME.money === "all" ? " checked" : "") + '><span><b>All youth (view only)</b><br><span class="meta">Members can see them but cannot change anything.</span></span></label><button class="btn pri" type="submit">Save</button> <span id="stMsg" class="ok"></span></form></div>' +
     pwCard("youth", "Youth password", "The password members use. Everyone signed in with the old one will need the new one.") +
     pwCard("exco", "Exco password", "The password for Exco. Other Exco members signed in with the old one will need the new one.") +
     '<div class="card"><h4>Link to share</h4><p class="body" id="stLink"></p><h4 style="margin-top:14px">What is stored</h4><p class="meta" id="stCounts">Loading...</p></div>';
@@ -510,7 +569,7 @@ function loadSettings() {
   api("api/settings").then(function (r) {
     if (!r.ok) return;
     var c = r.counts;
-    $("stCounts").textContent = "Announcements " + c.announcements + ", events " + c.events + ", roster entries " + c.roster + ", meetings " + c.minutes + ", action items " + c.actions + ", offering records " + c.offerings + ", contribution members " + c.members + ", contribution cells " + c.contrib + ", Exco " + c.exco + ", suggestions " + c.suggestions + (r.files != null ? ", uploaded files " + r.files : "") + ".";
+    $("stCounts").textContent = "Announcements " + c.announcements + ", events " + c.events + ", roster entries " + c.roster + ", meetings " + c.minutes + ", action items " + c.actions + ", offering records " + c.offerings + ", contribution members " + c.members + ", contribution cells " + c.contrib + ", expenses " + c.expenses + ", Exco " + c.exco + ", suggestions " + c.suggestions + (r.files != null ? ", uploaded files " + r.files : "") + ".";
   }).catch(function () {});
 }
 document.addEventListener("submit", function (e) {

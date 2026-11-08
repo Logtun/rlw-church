@@ -53,7 +53,9 @@ const SECTIONS = {
   roster: { fields: { date: "date!", duty: "text:60!", person: "text:160" }, order: "date DESC, duty COLLATE NOCASE ASC, id ASC" },
   exco: { fields: { name: "text:100!", role: "text:80!", phone: "text:30", photo: "file", sort: "int" }, order: "sort ASC, id ASC" },
   members: { fields: { name: "text:100!", sort: "int" }, order: "sort ASC, name COLLATE NOCASE ASC", money: true },
+  expenses: { fields: { date: "date!", item: "text:160!", category: "text:40!", amount: "money!", paid_to: "text:120", approved_by: "text:120", notes: "long:2000", receipt: "file" }, order: "date DESC, id DESC", money: true },
 };
+const FILE_COLS = { offerings: "photo", events: "photo", exco: "photo", expenses: "receipt" }; // tables that hold uploaded files, and the column
 const SQLT = { date: "TEXT", time: "TEXT", text: "TEXT", long: "TEXT", money: "REAL", bool: "INTEGER", int: "INTEGER", file: "TEXT" };
 const PLACEHOLDER_ROLES = ["President", "Vice President", "General Secretary", "Financial Secretary", "Treasurer", "Welfare Director", "Music and Media Director", "Evangelism Director"];
 
@@ -72,6 +74,7 @@ async function init(env) {
   stmts.push(env.DB.prepare(`CREATE INDEX IF NOT EXISTS ratelimit_k ON ratelimit(k, ts)`));
   stmts.push(env.DB.prepare(`CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT)`));
   stmts.push(env.DB.prepare(`CREATE INDEX IF NOT EXISTS actions_m ON actions(minute_id)`));
+  stmts.push(env.DB.prepare(`CREATE INDEX IF NOT EXISTS expenses_d ON expenses(date)`));
   await env.DB.batch(stmts);
   const seeded = await env.DB.prepare("SELECT v FROM settings WHERE k = 'exco_seeded'").first();
   if (!seeded) {
@@ -145,7 +148,7 @@ function parseField(type, v) {
   if (req && (out === "" || out === null)) return { err: "missing" };
   return { val: out };
 }
-const LABELS = { date: "date", title: "title", amount: "amount", name: "name", role: "role", what: "action item", duty: "duty", minute_id: "meeting" };
+const LABELS = { date: "date", title: "title", amount: "amount", name: "name", role: "role", what: "action item", duty: "duty", minute_id: "meeting", item: "item", category: "category" };
 
 async function listSection(env, name) {
   const s = SECTIONS[name];
@@ -172,7 +175,8 @@ async function saveRow(env, name, body) {
   const keys = Object.keys(vals);
   if (id) {
     if (keys.length) await env.DB.prepare(`UPDATE ${name} SET ${keys.map(k => k + " = ?").join(", ")}, updated_at = ? WHERE id = ?`).bind(...keys.map(k => vals[k]), now, id).run();
-    if (old && "photo" in vals && old.photo && old.photo !== vals.photo) await dropFile(env, old.photo);
+    const fc = FILE_COLS[name];
+    if (old && fc && fc in vals && old[fc] && old[fc] !== vals[fc]) await dropFile(env, old[fc]);
   } else {
     for (const [k, t] of Object.entries(s.fields)) if (!(k in vals)) vals[k] = t.startsWith("money") ? null : (t.startsWith("bool") || t.startsWith("int") ? 0 : "");
     const ks = Object.keys(vals);
@@ -190,7 +194,8 @@ async function deleteRow(env, name, body) {
   if (name === "minutes") b.push(env.DB.prepare("DELETE FROM actions WHERE minute_id = ?").bind(id));
   if (name === "members") b.push(env.DB.prepare("DELETE FROM contrib WHERE member_id = ?").bind(id));
   await env.DB.batch(b);
-  if (old.photo) await dropFile(env, old.photo);
+  const fc = FILE_COLS[name];
+  if (fc && old[fc]) await dropFile(env, old[fc]);
   return J({ ok: true });
 }
 
@@ -220,6 +225,56 @@ async function contribCsv(env, year) {
   return csvResp(lines, `rlw-youth-contributions-${year}.csv`);
 }
 
+// ---------- expenses ----------
+// Month summary: Income = offering records dated in that month + contribution cells for that month (contrib.year/month).
+const isMonth = s => /^\d{4}-(0[1-9]|1[0-2])$/.test(s || "");
+async function monthIncome(env, ym) {
+  const y = +ym.slice(0, 4), m = +ym.slice(5, 7);
+  const o = await env.DB.prepare("SELECT COALESCE(SUM(amount), 0) AS t, COUNT(*) AS n FROM offerings WHERE substr(date, 1, 7) = ?").bind(ym).first();
+  const c = await env.DB.prepare("SELECT COALESCE(SUM(amount), 0) AS t, COUNT(*) AS n FROM contrib WHERE year = ? AND month = ?").bind(y, m).first();
+  const r2 = x => Math.round((Number(x) || 0) * 100) / 100;
+  return { offering: r2(o && o.t), offering_n: (o && o.n) || 0, contrib: r2(c && c.t), contrib_n: (c && c.n) || 0, total: r2((Number(o && o.t) || 0) + (Number(c && c.t) || 0)) };
+}
+async function expensesMonth(env, ym) {
+  const { results: rows } = await env.DB.prepare(`SELECT * FROM expenses WHERE substr(date, 1, 7) = ? ORDER BY ${SECTIONS.expenses.order}`).bind(ym).all();
+  const by = {}; let total = 0;
+  for (const r of rows) { const k = r.category || "Other"; by[k] = (by[k] || 0) + (Number(r.amount) || 0); total += Number(r.amount) || 0; }
+  const cats = Object.entries(by).map(([category, t]) => ({ category, total: Math.round(t * 100) / 100 })).sort((a, b) => b.total - a.total);
+  total = Math.round(total * 100) / 100;
+  const income = await monthIncome(env, ym);
+  const { results: ms } = await env.DB.prepare("SELECT DISTINCT substr(date, 1, 7) AS ym FROM expenses ORDER BY ym DESC").all();
+  const { results: cs } = await env.DB.prepare("SELECT category, COUNT(*) AS n FROM expenses GROUP BY category ORDER BY n DESC LIMIT 40").all();
+  return { month: ym, rows, cats, total, income, balance: Math.round((income.total - total) * 100) / 100, months: ms.map(r => r.ym), used_categories: cs.map(r => r.category) };
+}
+async function expensesCsv(env, u) {
+  const ym = u.searchParams.get("month"), yr = parseInt(u.searchParams.get("year"), 10);
+  const head = ["Date", "Item", "Category", "Amount (NGN)", "Paid to", "Approved / paid by", "Notes", "Receipt attached"];
+  const line = r => [r.date, r.item, r.category, r.amount, r.paid_to, r.approved_by, r.notes, r.receipt ? "Yes" : "No"];
+  if (isMonth(ym)) {
+    const d = await expensesMonth(env, ym);
+    const rows = d.rows.slice().reverse(); // oldest first in the file
+    const L = [head, ...rows.map(line), [], ["Category", "Total (NGN)"], ...d.cats.map(c => [c.category, c.total]), ["Total expenses", d.total], [],
+      ["Month summary", ""], ["Offering", d.income.offering], ["Contributions", d.income.contrib], ["Income", d.income.total], ["Expenses", d.total], ["Balance", d.balance]];
+    return csvResp(L, `rlw-youth-expenses-${ym}.csv`);
+  }
+  if (yr >= 2000 && yr <= 2100) {
+    const { results } = await env.DB.prepare("SELECT * FROM expenses WHERE substr(date, 1, 4) = ? ORDER BY date ASC, id ASC").bind(String(yr)).all();
+    const L = [head, ...results.map(line), [], ["Month", "Offering", "Contributions", "Income", "Expenses", "Balance"]];
+    const T = [0, 0, 0, 0, 0];
+    for (let m = 1; m <= 12; m++) {
+      const ymm = yr + "-" + String(m).padStart(2, "0");
+      const inc = await monthIncome(env, ymm);
+      const ex = Math.round(results.filter(r => r.date.slice(0, 7) === ymm).reduce((a, r) => a + (Number(r.amount) || 0), 0) * 100) / 100;
+      const bal = Math.round((inc.total - ex) * 100) / 100;
+      L.push([MONTHS[m - 1] + " " + yr, inc.offering, inc.contrib, inc.total, ex, bal]);
+      [inc.offering, inc.contrib, inc.total, ex, bal].forEach((v, i) => T[i] += v);
+    }
+    L.push(["Year total", ...T.map(v => Math.round(v * 100) / 100)]);
+    return csvResp(L, `rlw-youth-expenses-${yr}.csv`);
+  }
+  return J({ ok: false, error: "Pick a month or a year." }, 400);
+}
+
 // ---------- files ----------
 const MIME = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
 async function upload(req, env) {
@@ -236,16 +291,16 @@ async function upload(req, env) {
 }
 async function referenced(env) {
   const keys = new Set(); const where = {};
-  for (const t of ["offerings", "events", "exco"]) {
-    const { results } = await env.DB.prepare(`SELECT photo FROM ${t} WHERE photo != ''`).all();
-    for (const r of results) { keys.add(r.photo); where[r.photo] = t; }
+  for (const [t, c] of Object.entries(FILE_COLS)) {
+    const { results } = await env.DB.prepare(`SELECT ${c} AS f FROM ${t} WHERE ${c} != ''`).all();
+    for (const r of results) { keys.add(r.f); where[r.f] = t; }
   }
   return { keys, where };
 }
 async function serveFile(env, ses, key) {
   if (!/^up\/[a-f0-9]{24}\.(jpg|png|webp|pdf)$/.test(key)) return new Response("Not found", { status: 404 });
   if (ses.role !== "exco") {
-    const off = await env.DB.prepare("SELECT id FROM offerings WHERE photo = ?").bind(key).first();
+    const off = (await env.DB.prepare("SELECT id FROM offerings WHERE photo = ?").bind(key).first()) || (await env.DB.prepare("SELECT id FROM expenses WHERE receipt = ?").bind(key).first());
     if (off && (await moneyMode(env)) === "exco") return new Response("Only Exco can see this.", { status: 403 });
   }
   const o = env.FILES ? await env.FILES.get(key) : null;
@@ -413,6 +468,15 @@ async function api(req, env, path, u) {
     if (!canMoney) return J({ ok: false, error: "Only Exco can see this page." }, 403);
     const y = parseInt(u.searchParams.get("year"), 10) || +lagosDate(Date.now()).slice(0, 4);
     return contribCsv(env, y);
+  }
+  if (path === "/api/expenses" && req.method === "GET") {
+    if (!canMoney) return J({ ok: false, error: "Only Exco can see this page." }, 403);
+    let ym = u.searchParams.get("month"); if (!isMonth(ym)) ym = lagosDate(Date.now()).slice(0, 7);
+    return J({ ok: true, ...(await expensesMonth(env, ym)) });
+  }
+  if (path === "/api/expenses.csv" && req.method === "GET") {
+    if (!canMoney) return J({ ok: false, error: "Only Exco can see this page." }, 403);
+    return expensesCsv(env, u);
   }
   const fm = path.match(/^\/api\/file\/(up\/[a-z0-9.]+)$/);
   if (fm && req.method === "GET") return serveFile(env, ses, fm[1]);

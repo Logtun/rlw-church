@@ -209,3 +209,20 @@ input[type=search],input[type=url]{width:100%;padding:12px 13px;border:1px solid
 .hero-vid .hero-in{position:relative}
 .hero-vid h2,.hero-vid p{text-shadow:0 1px 3px rgba(0,0,0,.35)}
 @media (prefers-reduced-motion: reduce){.hero-vid .hero-bg{display:none}.hero-vid{background:#1B2A6B url(bg/youth_bg_poster.jpg) center/cover no-repeat}}
+
+/* expenses */
+input[type=month]{width:100%;padding:10px 12px;border:1px solid #cfd5e6;border-radius:11px;background:#fff;font-size:16px;min-height:44px}
+.exmon{flex-wrap:nowrap}.exmon input[type=month]{flex:1;min-width:0;margin:0}.exmon .btn{flex:none;min-width:44px;font-size:20px;line-height:1}
+.exsum{border-top:4px solid var(--gold)}
+.exsum h4{margin-bottom:8px}
+.sline{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px}
+.sline b{font-size:17px;color:var(--navy);white-space:nowrap}
+.sline b.neg{color:#9b2c2c}
+.sline.bal{border-bottom:0;padding-top:10px}.sline.bal span{font-weight:800}.sline.bal b{font-size:21px;color:var(--green)}
+.sline.bal.under b{color:#9b2c2c}
+.ssub{font-size:13px;color:var(--muted);margin:-3px 0 4px}
+.amt.neg{color:#9b2c2c}
+.cbars{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.cl{display:flex;justify-content:space-between;gap:10px;font-size:14px;margin-bottom:4px}.cl span{overflow-wrap:anywhere}.cl b{white-space:nowrap;color:var(--navy)}
+.ct{height:10px;background:var(--soft);border-radius:6px;overflow:hidden}.ct i{display:block;height:100%;background:var(--green);border-radius:6px}
+.cbar:first-child .ct i{background:var(--navy)}
