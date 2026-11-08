@@ -35,7 +35,7 @@ T0 = time.time()
 BUDGET = 420  # seconds for all fetching; the wrapper `timeout` is the hard stop
 LAGOS = dt.timezone(dt.timedelta(hours=1))
 TODAY = dt.datetime.now(LAGOS).date()
-QUOTA = {"jobs": 14, "tech": 9, "remote": 10, "scholarships": 10}  # new items per day (about 40 total)
+QUOTA = {"jobs": 11, "tech": 7, "remote": 8, "scholarships": 8}  # new items per day (about 30-34); the site keeps ~120, so a listing stays about 4 days
 MAX_AGE_DAYS = {"jobs": 7, "tech": 7, "remote": 7, "scholarships": 21}
 
 DRY = "--dry-run" in sys.argv
@@ -645,7 +645,7 @@ def main():
             k = norm_title(it["title"]) + "|" + norm_title(it.get("org"))
             if any(k == norm_title(x["title"]) + "|" + norm_title(x.get("org")) for v in picked.values() for x in v):
                 continue
-            if cat in ("jobs", "tech", "scholarships") and len(picked[cat]) < QUOTA[cat] + 6:
+            if cat in ("jobs", "tech", "scholarships") and len(picked[cat]) < QUOTA[cat] + 4:
                 picked[cat].append(it)
                 spare -= 1
 
