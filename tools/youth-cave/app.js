@@ -341,7 +341,7 @@ function pollCard(p) {
   h += '<p class="meta"><span class="pl-st' + (p.open ? " open" : "") + '">' + st + "</span> &middot; " + p.total + " vote" + (p.total === 1 ? "" : "s") + " &middot; " + (p.multi ? "Choose one or more" : "Choose one") + "</p>";
   if (voting) {
     h += pollVoteForm(p) + (voted ? '<button type="button" class="btn ghost sm pl-cx" data-pcancel="' + p.id + '">Keep my vote</button>' : "");
-    if (p.results) h += '<details class="pl-ex"' + (PL.peek[p.id] ? " open" : "") + ' data-ppeek="' + p.id + '"><summary>' + (isExco() ? "Live results" : "See results so far") + "</summary>" + pollBars(p) + "</details>";
+    if (p.results) h += '<details class="pl-ex"' + (PL.peek[p.id] === 1 || (isExco() && PL.peek[p.id] !== 0) ? " open" : "") + ' data-ppeek="' + p.id + '"><summary>' + (isExco() ? "Live results" : "See results so far") + "</summary>" + pollBars(p) + "</details>";
   } else h += pollBars(p);
   if (!voting && p.open && voted) h += '<div class="acts"><button type="button" class="btn ghost sm" data-pchange="' + p.id + '">Change my vote</button></div>';
   if (isExco()) {
@@ -455,7 +455,7 @@ $("main").addEventListener("change", function (e) {
   var pid = +x.getAttribute("data-pck");
   PL.sel[pid] = [].map.call(document.querySelectorAll('[data-pck="' + pid + '"]:checked'), function (y) { return +y.value; });
 });
-$("main").addEventListener("toggle", function (e) { var t = e.target; if (!t || !t.getAttribute) return; if (t.id === "plPast") PL.pastOpen = t.open; var k = t.getAttribute("data-ppeek"); if (k) { if (t.open) PL.peek[k] = 1; else delete PL.peek[k]; } }, true);
+$("main").addEventListener("toggle", function (e) { var t = e.target; if (!t || !t.getAttribute) return; if (t.id === "plPast") PL.pastOpen = t.open; var k = t.getAttribute("data-ppeek"); if (k) PL.peek[k] = t.open ? 1 : 0; }, true);
 // live results: refresh the Polls tab every 15 seconds while it is on screen
 setInterval(function () {
   if (cur !== "polls" || !token || document.hidden || !$("modal").hidden || PL.busy) return;
