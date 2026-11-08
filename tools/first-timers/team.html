@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Follow-up Team · First-Timers · Rivers of Living Water Parish</title>
+<meta name="theme-color" content="#07080c">
+<link rel="stylesheet" href="app.css?v=u1">
+</head>
+<body>
+<main class="wrap wide">
+<section id="loginView" class="hidden" aria-labelledby="loginTitle">
+<header class="brand"><img src="logo.jpg" width="244" height="320" alt="RCCG Rivers of Living Water Parish logo" style="width:96px"><h1 id="loginTitle">Follow-up Team</h1><p class="lead">First-timers list. Team members only.</p><div class="accent" aria-hidden="true"></div></header>
+<form id="loginForm" class="card" style="max-width:420px;margin:0 auto">
+<div class="field"><label for="pw">Admin password</label><input type="password" id="pw" autocomplete="current-password" required></div>
+<p class="err" id="loginErr" aria-live="polite"></p>
+<button class="btn block navy" type="submit" id="loginBtn">Sign in</button>
+</form>
+</section>
+
+<section id="appView" class="hidden">
+<div class="topbar">
+<div class="who"><img src="logo.jpg" width="244" height="320" alt=""><div><h1>First-Timers</h1><div class="small">Rivers of Living Water Parish · Follow-up Team</div></div></div>
+<button class="btn ghost sm" type="button" id="logout">Sign out</button>
+</div>
+<div class="stats" aria-live="polite">
+<div class="stat"><b id="sWeek">0</b><span>This week (since Sun)</span></div>
+<div class="stat"><b id="sMonth">0</b><span>This month</span></div>
+<div class="stat"><b id="sOpen">0</b><span>Not contacted</span></div>
+</div>
+<div class="toolbar">
+<div class="seg" role="group" aria-label="Filter">
+<button type="button" id="fAll" aria-pressed="true">All</button>
+<button type="button" id="fOpen" aria-pressed="false">Not yet contacted</button>
+</div>
+<button class="btn ghost sm" type="button" id="refresh">Refresh</button>
+<button class="btn navy sm" type="button" id="csv">Export CSV</button>
+</div>
+<div class="field" style="margin:10px 0 4px"><label for="me" class="small" style="font-weight:600">Your name (saved on this phone, used when you mark someone)</label><input type="text" id="me" maxlength="60" placeholder="e.g. Bro. Tunde"></div>
+<p class="err" id="appErr" aria-live="polite"></p>
+<div id="list"></div>
+<details class="settings card">
+<summary>WhatsApp welcome message</summary>
+<p class="small">This text is pre-filled when you tap WhatsApp. {name} becomes the person's first name. You can still edit it in WhatsApp before sending.</p>
+<textarea id="tpl" maxlength="1000" aria-label="WhatsApp welcome message"></textarea>
+<p class="err" id="tplMsg" aria-live="polite"></p>
+<button class="btn sm" type="button" id="saveTpl">Save message</button>
+</details>
+<p class="small" style="text-align:center"><a href="poster">Print the door QR poster</a> · <a href="./">Visitor form</a></p>
+</section>
+</main>
+<footer class="foot">Rivers of Living Water Parish<span style="display:block;margin-top:6px;font-size:.85em;opacity:.8">© 2026 Rivers Of Living Water</span></footer>
+<script src="team.js?v=u1"></script>
+</body>
+</html>

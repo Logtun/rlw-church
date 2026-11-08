@@ -1,0 +1,37 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/firsttimers",
+      "destination": "https://rlw-church.sites.tab.bot/firsttimers/"
+    },
+    {
+      "source": "/workers",
+      "destination": "https://rlw-church.sites.tab.bot/workers/"
+    },
+    {
+      "source": "/birthdays",
+      "destination": "https://rlw-church.sites.tab.bot/birthdays/"
+    },
+    {
+      "source": "/quiz",
+      "destination": "https://rlw-church.sites.tab.bot/quiz/"
+    },
+    {
+      "source": "/firsttimers/:path*",
+      "destination": "https://rlw-church.sites.tab.bot/firsttimers/:path*"
+    },
+    {
+      "source": "/workers/:path*",
+      "destination": "https://rlw-church.sites.tab.bot/workers/:path*"
+    },
+    {
+      "source": "/birthdays/:path*",
+      "destination": "https://rlw-church.sites.tab.bot/birthdays/:path*"
+    },
+    {
+      "source": "/quiz/:path*",
+      "destination": "https://rlw-church.sites.tab.bot/quiz/:path*"
+    }
+  ]
+}

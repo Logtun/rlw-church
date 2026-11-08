@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="logo.jpg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RLW Birthdays · Rivers of Living Water Parish</title>
+<meta name="description" content="Add your birthday so RCCG Rivers of Living Water Parish can celebrate you.">
+<meta property="og:title" content="RLW Birthdays">
+<meta property="og:description" content="Add your name, birthday and photo so the church can celebrate you.">
+<meta property="og:image" content="https://rlw-birthdays.sites.tab.bot/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#06070a">
+<link rel="stylesheet" href="app.css?v=u1">
+<style>@font-face{font-family:"RLWScript";src:url(fonts/GreatVibes-Regular.woff2) format("woff2");font-display:swap}</style>
+</head>
+<body>
+<main class="wrap">
+<header class="brand">
+<img src="logo.jpg" width="244" height="320" alt="RCCG Rivers of Living Water Parish logo">
+<h1><span class="scr">Happy Birthday</span>Birthday Register</h1>
+<div class="accent" aria-hidden="true"></div>
+<p class="lead">Add your birthday so the church can celebrate you with a birthday flyer and video in your month.</p>
+</header>
+
+<form id="f" class="card" novalidate>
+<div class="field">
+<label for="name">Full name</label>
+<input type="text" id="name" name="name" autocomplete="name" maxlength="80" required placeholder="e.g. Grace Adeyemi">
+</div>
+<div class="field">
+<span class="lbl" id="bdl">Birthday</span>
+<div class="dm" role="group" aria-labelledby="bdl">
+<select id="day" name="day" aria-label="Day" required><option value="">Day</option></select>
+<select id="month" name="month" aria-label="Month" required><option value="">Month</option></select>
+</div>
+<p class="hint">We only need the day and month.</p>
+</div>
+<div class="field">
+<span class="lbl">Your photo</span>
+<label class="drop" id="drop" for="file">
+<input type="file" id="file" accept="image/*">
+<span class="big">Choose a photo</span>
+<span class="small">A clear photo of your face works best. We crop it for you.</span>
+</label>
+<div id="cropArea" class="hidden">
+<div class="cropwrap">
+<div class="cropbox" id="cropbox"></div>
+<div class="zoomrow"><label for="zoom" class="small" style="margin:0;font-weight:600">Zoom</label><input type="range" id="zoom" min="1" max="3" step="0.01" value="1"></div>
+<p class="hint center" id="cropHint">Drag the photo to move it. Your face should sit inside the gold circle.</p>
+<div class="btnrow"><button type="button" class="linkbtn" id="another">Choose a different photo</button></div>
+</div>
+</div>
+<p class="err hidden" id="photoErr" role="alert"></p>
+</div>
+<div class="field">
+<label for="phone">WhatsApp number <span class="opt">(optional)</span></label>
+<input type="tel" id="phone" name="phone" autocomplete="tel" maxlength="24" placeholder="e.g. 0803 123 4567">
+</div>
+<div class="field">
+<label for="dept">Department or unit <span class="opt">(optional)</span></label>
+<input type="text" id="dept" name="dept" maxlength="60" placeholder="e.g. Choir, Ushering, Children">
+</div>
+<div class="hp" aria-hidden="true"><label for="website">Leave this empty</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
+<label class="check"><input type="checkbox" id="consent"> <span>I agree my name and photo can be shown on the church birthday flyer and video.</span></label>
+<div id="dupBox" class="notice warn hidden" role="alert">
+<p id="dupText" style="margin:0 0 10px"></p>
+<div class="btnrow" style="justify-content:flex-start"><button type="button" class="btn sm" id="dupYes">Submit anyway</button><button type="button" class="btn sm ghost" id="dupNo">Cancel</button></div>
+</div>
+<p class="err hidden" id="err" role="alert"></p>
+<button type="submit" class="btn block" id="go" style="margin-top:12px">Submit my birthday</button>
+</form>
+
+<section id="done" class="card hidden" aria-live="polite">
+<h2 style="margin-top:0" id="doneTitle">Thank you!</h2>
+<p id="doneText" class="small" style="font-size:1rem;color:var(--text)"></p>
+<img id="flyer" class="flyerprev" alt="Your birthday flyer preview">
+<p class="hint center">This is a preview of your birthday flyer.</p>
+<div class="btnrow"><button type="button" class="btn" id="save">Save my flyer</button><button type="button" class="btn ghost" id="again">Add another person</button></div>
+</section>
+</main>
+<footer class="foot">Rivers of Living Water Parish<span style="display:block;margin-top:6px;font-size:.85em;opacity:.8">© 2026 Rivers Of Living Water</span></footer>
+<script src="art.js?v=u1"></script>
+<script src="themes.js?v=u1"></script>
+<script src="crop.js?v=u1"></script>
+<script src="form.js?v=u1"></script>
+</body>
+</html>

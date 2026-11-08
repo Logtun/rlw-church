@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="logo.jpg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin · RLW Birthdays</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#06070a">
+<link rel="stylesheet" href="app.css?v=u1">
+</head>
+<body>
+<main class="wrap wide">
+<section id="loginView" class="card hidden" style="max-width:440px;margin:40px auto">
+<header class="brand"><img src="logo.jpg" width="244" height="320" alt="RCCG Rivers of Living Water Parish logo" style="width:84px"><h1>RLW Birthdays</h1><div class="accent" aria-hidden="true"></div></header>
+<form id="loginForm">
+<div class="field"><label for="pw">Admin password</label><input type="password" id="pw" autocomplete="current-password" required></div>
+<p class="err hidden" id="loginErr" role="alert"></p>
+<button class="btn block" type="submit">Sign in</button>
+</form>
+</section>
+
+<div id="appView" class="hidden">
+<div class="topbar">
+<div class="who"><img src="logo.jpg" width="244" height="320" alt=""><div><h1>RLW Birthdays</h1><div class="small">Admin</div></div></div>
+<div class="row" style="gap:6px"><a class="btn sm ghost" href="./" target="_blank" rel="noopener">Member form</a><a class="btn sm ghost" href="poster" target="_blank" rel="noopener">QR poster</a><button class="btn sm ghost" id="logout" type="button">Sign out</button></div>
+</div>
+<nav class="tabs" role="tablist" aria-label="Admin sections">
+<button role="tab" aria-selected="true" data-tab="months" id="t-months">Months</button>
+<button role="tab" aria-selected="false" data-tab="add" id="t-add">Add member</button>
+<button role="tab" aria-selected="false" data-tab="songs" id="t-songs">Songs</button>
+<button role="tab" aria-selected="false" data-tab="settings" id="t-settings">Settings</button>
+</nav>
+
+<section id="p-months" role="tabpanel" aria-labelledby="t-months">
+<div class="mtabs" id="mtabs" role="tablist" aria-label="Months"></div>
+<div class="mhead"><h2 id="mTitle">January</h2>
+<div class="row" style="gap:6px">
+<button class="btn sm" id="groupBtn" type="button">Group flyer</button>
+<button class="btn sm navy" id="allBtn" type="button">Download all flyers</button>
+<button class="btn sm ghost" id="csvMonth" type="button">Export month CSV</button>
+<button class="btn sm ghost" id="csvAll" type="button">Export everyone CSV</button>
+</div></div>
+<p class="small" id="mSub"></p>
+<p class="small" id="mDesign" style="margin-top:-4px"></p>
+<div class="people" id="people"></div>
+<div class="panel hidden" id="groupPanel"><h3>Group flyer</h3><p class="small" id="groupInfo"></p><div class="thumbs" id="groupThumbs"></div><div class="row" style="gap:6px" id="groupActs"></div></div>
+<div class="panel" id="videoPanel">
+<h3>Birthday video for <span id="vMonth">January</span></h3>
+<p class="small" id="vInfo"></p>
+<div class="row" style="gap:16px;align-items:center;margin:8px 0">
+<label class="check" style="margin:0"><input type="radio" name="fmt" value="portrait" checked> Portrait 1080×1920 (WhatsApp status)</label>
+<label class="check" style="margin:0"><input type="radio" name="fmt" value="square"> Square 1080×1080</label>
+<label class="check" style="margin:0"><input type="radio" name="fmt" value="landscape"> Landscape 1920×1080 (YouTube, projector, TV)</label>
+</div>
+<button class="btn" id="makeVid" type="button">Make video</button>
+<div id="vProg" class="hidden"><div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="vBar"><i></i></div><p class="small" id="vStatus"></p>
+<p class="notice warn small" style="margin:8px 0">Keep this tab open and on screen until the video finishes. It records in real time.</p></div>
+<div class="vidout hidden" id="vOut" style="margin-top:12px"><div id="vStage"></div><div id="vDone"></div></div>
+<p class="small" id="vFormat" style="margin-top:10px"></p>
+</div>
+</section>
+
+<section id="p-add" role="tabpanel" aria-labelledby="t-add" class="hidden">
+<form id="addForm" class="card" style="max-width:560px" novalidate>
+<h2 style="margin-top:0">Add a member</h2>
+<div class="field"><label for="aName">Full name</label><input type="text" id="aName" maxlength="80" required></div>
+<div class="field"><span class="lbl">Birthday</span><div class="dm"><select id="aDay" aria-label="Day"><option value="">Day</option></select><select id="aMonth" aria-label="Month"><option value="">Month</option></select></div></div>
+<div class="field"><label for="aPhone">WhatsApp number <span class="opt">(optional)</span></label><input type="tel" id="aPhone" maxlength="24"></div>
+<div class="field"><label for="aDept">Department or unit <span class="opt">(optional)</span></label><input type="text" id="aDept" maxlength="60"></div>
+<div class="field"><span class="lbl">Photo <span class="opt">(optional)</span></span>
+<label class="drop" id="aDrop" for="aFile"><input type="file" id="aFile" accept="image/*"><span class="big">Choose a photo</span></label>
+<div id="aCropArea" class="hidden"><div class="cropwrap"><div class="cropbox" id="aCropbox"></div><div class="zoomrow"><label for="aZoom" class="small" style="margin:0">Zoom</label><input type="range" id="aZoom" min="1" max="3" step="0.01" value="1"></div></div></div>
+</div>
+<p class="err hidden" id="aErr" role="alert"></p><p class="ok hidden" id="aOk" role="status"></p>
+<button class="btn" type="submit" id="aGo">Add member</button>
+</form>
+</section>
+
+<section id="p-songs" role="tabpanel" aria-labelledby="t-songs" class="hidden">
+<div class="card">
+<h2 style="margin-top:0">Songs for each month</h2>
+<p class="small">Each month has its own original instrumental birthday tune, made for this site, so there are no copyright problems on WhatsApp. You can upload your own song for any month (MP3 or M4A, under 20 MB). Only upload music you have the right to use.</p>
+<div class="songs" id="songs"></div>
+</div>
+</section>
+
+<section id="p-settings" role="tabpanel" aria-labelledby="t-settings" class="hidden">
+<div class="card" style="max-width:480px">
+<h2 style="margin-top:0">Card design</h2>
+<p class="small">Each month has its own birthday card design, group flyer and video look. Turn this on to use the one classic navy and gold design for every month instead.</p>
+<label class="check"><input type="checkbox" id="classicToggle"> Use one classic design for all months</label>
+<p class="ok hidden" id="classicOk" role="status"></p><p class="err hidden" id="classicErr" role="alert"></p>
+</div>
+<form id="pwForm" class="card" style="max-width:480px">
+<h2 style="margin-top:0">Change admin password</h2>
+<div class="field"><label for="pwCur">Current password</label><input type="password" id="pwCur" autocomplete="current-password" required></div>
+<div class="field"><label for="pwNew">New password</label><input type="password" id="pwNew" autocomplete="new-password" minlength="8" required></div>
+<div class="field"><label for="pwNew2">New password again</label><input type="password" id="pwNew2" autocomplete="new-password" minlength="8" required></div>
+<p class="err hidden" id="pwErr" role="alert"></p><p class="ok hidden" id="pwOk" role="status"></p>
+<button class="btn" type="submit">Change password</button>
+<p class="hint">Other signed-in devices are signed out when you change it.</p>
+</form>
+</section>
+</div>
+</main>
+
+<dialog id="dlgFlyer"><h3 id="dfTitle" style="margin-top:0">Flyer</h3><img id="dfImg" class="flyerprev" alt="Birthday flyer"><div class="btnrow"><button class="btn" id="dfDl" type="button">Download</button><button class="btn ghost" type="button" data-close>Close</button></div></dialog>
+<dialog id="dlgEdit"><form id="editForm" method="dialog" novalidate><h3 style="margin-top:0">Edit member</h3>
+<div class="field"><label for="eName">Full name</label><input type="text" id="eName" maxlength="80"></div>
+<div class="field"><span class="lbl">Birthday</span><div class="dm"><select id="eDay" aria-label="Day"></select><select id="eMonth" aria-label="Month"></select></div></div>
+<div class="field"><label for="ePhone">WhatsApp number</label><input type="tel" id="ePhone" maxlength="24"></div>
+<div class="field"><label for="eDept">Department or unit</label><input type="text" id="eDept" maxlength="60"></div>
+<label class="check"><input type="checkbox" id="eHidden"> Hide from flyers and video</label>
+<p class="err hidden" id="eErr" role="alert"></p>
+<div class="btnrow" style="justify-content:flex-start"><button class="btn" type="button" id="eSave">Save</button><button class="btn ghost" type="button" data-close>Cancel</button></div></form></dialog>
+<dialog id="dlgPhoto"><h3 style="margin-top:0" id="dpTitle">Adjust photo</h3>
+<div class="cropwrap"><div class="cropbox" id="pCropbox"></div><div class="zoomrow"><label for="pZoom" class="small" style="margin:0">Zoom</label><input type="range" id="pZoom" min="1" max="3" step="0.01" value="1"></div></div>
+<p class="hint center">Drag to move. The gold circle shows what appears on the flyer.</p>
+<label class="btn sm ghost" style="margin:6px auto;display:flex;width:max-content" for="pFile">Choose a new photo<input type="file" id="pFile" accept="image/*" class="hp"></label>
+<p class="err hidden" id="pErr" role="alert"></p>
+<div class="btnrow"><button class="btn" type="button" id="pSave">Save photo</button><button class="btn ghost" type="button" data-close>Cancel</button></div></dialog>
+
+<footer class="foot">Rivers of Living Water Parish<span style="display:block;margin-top:6px;font-size:.85em;opacity:.8">© 2026 Rivers Of Living Water</span></footer>
+<script src="art.js?v=u1"></script>
+<script src="themes.js?v=u1"></script>
+<script src="crop.js?v=u1"></script>
+<script src="video.js?v=u1"></script>
+<script src="admin.js?v=u1"></script>
+</body>
+</html>

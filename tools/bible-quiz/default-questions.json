@@ -1,0 +1,1013 @@
+{
+ "title": "RLW Bible Quiz",
+ "sets": [
+  {
+   "id": "round-1-ot",
+   "title": "Round 1: Old Testament",
+   "featured": true,
+   "questions": [
+    {
+     "q": "Who did God tell to build an ark of gopher wood?",
+     "type": "mc",
+     "options": [
+      "Lot",
+      "Moses",
+      "Noah",
+      "Abraham"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "Genesis 6:13-14",
+     "note": "KJV: And God said unto Noah, The end of all flesh is come before me; for the earth is filled with violence through them; and, behold, I will destroy them with the earth. Make thee an ark of gopher wood; rooms shalt thou make in the ark, and shalt pitch it within and without with pitch."
+    },
+    {
+     "q": "Which prophet was swallowed by a great fish?",
+     "type": "mc",
+     "options": [
+      "Elijah",
+      "Amos",
+      "Jonah",
+      "Jeremiah"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "Jonah 1:17",
+     "note": "KJV: Now the LORD had prepared a great fish to swallow up Jonah. And Jonah was in the belly of the fish three days and three nights."
+    },
+    {
+     "q": "Who defeated the giant Goliath with a sling and a stone?",
+     "type": "mc",
+     "options": [
+      "Saul",
+      "Samson",
+      "Jonathan",
+      "David"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "1 Samuel 17:50",
+     "note": "KJV: So David prevailed over the Philistine with a sling and with a stone, and smote the Philistine, and slew him; but there was no sword in the hand of David."
+    },
+    {
+     "q": "Who was cast into the den of lions for praying to God?",
+     "type": "mc",
+     "options": [
+      "Daniel",
+      "Joseph",
+      "Jeremiah",
+      "Nehemiah"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Daniel 6:16",
+     "note": "KJV: Then the king commanded, and they brought Daniel, and cast him into the den of lions. Now the king spake and said unto Daniel, Thy God whom thou servest continually, he will deliver thee."
+    },
+    {
+     "q": "At the burning bush, whom did God send to bring the children of Israel out of Egypt?",
+     "type": "mc",
+     "options": [
+      "Moses",
+      "Caleb",
+      "Joshua",
+      "Aaron"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Exodus 3:10-11",
+     "note": "KJV: Come now therefore, and I will send thee unto Pharaoh, that thou mayest bring forth my people the children of Israel out of Egypt. And Moses said unto God, Who am I, that I should go unto Pharaoh, and that I should bring forth the children of Israel out of Egypt?"
+    },
+    {
+     "q": "Which son of Jacob was sold by his brothers to the Ishmeelites?",
+     "type": "mc",
+     "options": [
+      "Judah",
+      "Joseph",
+      "Benjamin",
+      "Reuben"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "Genesis 37:28",
+     "note": "KJV: Then there passed by Midianites merchantmen; and they drew and lifted up Joseph out of the pit, and sold Joseph to the Ishmeelites for twenty pieces of silver: and they brought Joseph into Egypt."
+    },
+    {
+     "q": "Complete the verse: \"The LORD is my shepherd; I shall not ___.\"",
+     "type": "mc",
+     "options": [
+      "worry",
+      "want",
+      "fall",
+      "fear"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "Psalm 23:1",
+     "note": "KJV: The LORD is my shepherd; I shall not want."
+    },
+    {
+     "q": "Which prophet went up into heaven by a whirlwind?",
+     "type": "mc",
+     "options": [
+      "Ezekiel",
+      "Elisha",
+      "Isaiah",
+      "Elijah"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "2 Kings 2:11",
+     "note": "KJV: And it came to pass, as they still went on, and talked, that, behold, there appeared a chariot of fire, and horses of fire, and parted them both asunder; and Elijah went up by a whirlwind into heaven."
+    },
+    {
+     "q": "Which queen said \"if I perish, I perish\" before going in to the king?",
+     "type": "mc",
+     "options": [
+      "Esther",
+      "Jezebel",
+      "Vashti",
+      "The queen of Sheba"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Esther 4:16",
+     "note": "KJV: Go, gather together all the Jews that are present in Shushan, and fast ye for me, and neither eat nor drink three days, night or day: I also and my maidens will fast likewise; and so will I go in unto the king, which is not according to the law: and if I perish, I perish."
+    },
+    {
+     "q": "Who said to Naomi, \"whither thou goest, I will go\"?",
+     "type": "mc",
+     "options": [
+      "Orpah",
+      "Ruth",
+      "Hannah",
+      "Rahab"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "Ruth 1:16",
+     "note": "KJV: And Ruth said, Intreat me not to leave thee, or to return from following after thee: for whither thou goest, I will go; and where thou lodgest, I will lodge: thy people shall be my people, and thy God my God:"
+    }
+   ]
+  },
+  {
+   "id": "round-2-nt",
+   "title": "Round 2: New Testament",
+   "featured": false,
+   "questions": [
+    {
+     "q": "In which town was Jesus born?",
+     "type": "mc",
+     "options": [
+      "Capernaum",
+      "Nazareth",
+      "Jerusalem",
+      "Bethlehem of Judaea"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "Matthew 2:1",
+     "note": "KJV: Now when Jesus was born in Bethlehem of Judaea in the days of Herod the king, behold, there came wise men from the east to Jerusalem,"
+    },
+    {
+     "q": "How many apostles did Jesus ordain to be with him?",
+     "type": "mc",
+     "options": [
+      "Seventy",
+      "Twelve",
+      "Ten",
+      "Seven"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "Mark 3:14",
+     "note": "KJV: And he ordained twelve, that they should be with him, and that he might send them forth to preach,"
+    },
+    {
+     "q": "Who denied Jesus three times before the cock crew?",
+     "type": "mc",
+     "options": [
+      "Thomas",
+      "Peter",
+      "Judas",
+      "John"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "Luke 22:61",
+     "note": "KJV: And the Lord turned, and looked upon Peter. And Peter remembered the word of the Lord, how he had said unto him, Before the cock crow, thou shalt deny me thrice."
+    },
+    {
+     "q": "What was the name of the mother of Jesus?",
+     "type": "mc",
+     "options": [
+      "Anna",
+      "Elisabeth",
+      "Martha",
+      "Mary"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "Matthew 1:18",
+     "note": "KJV: Now the birth of Jesus Christ was on this wise: When as his mother Mary was espoused to Joseph, before they came together, she was found with child of the Holy Ghost."
+    },
+    {
+     "q": "When Jesus fed the five thousand, there were five loaves and how many fishes?",
+     "type": "mc",
+     "options": [
+      "Two",
+      "Five",
+      "Twelve",
+      "Seven"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Matthew 14:17",
+     "note": "KJV: And they say unto him, We have here but five loaves, and two fishes."
+    },
+    {
+     "q": "What was Jesus' first miracle, at the marriage in Cana of Galilee?",
+     "type": "mc",
+     "options": [
+      "Turning water into wine",
+      "Healing a blind man",
+      "Walking on water",
+      "Feeding the five thousand"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "John 2:9-11",
+     "note": "KJV: When the ruler of the feast had tasted the water that was made wine, and knew not whence it was: (but the servants which drew the water knew;) the governor of the feast called the bridegroom, And saith unto him, Every man at the beginning doth set forth good wine; and when men have well drunk, then that which is worse: but thou hast kept the good wine until now. This beginning of miracle"
+    },
+    {
+     "q": "Who climbed up into a sycomore tree to see Jesus?",
+     "type": "mc",
+     "options": [
+      "Bartimaeus",
+      "Nicodemus",
+      "Matthew",
+      "Zacchaeus"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "Luke 19:2-4",
+     "note": "KJV: And, behold, there was a man named Zacchaeus, which was the chief among the publicans, and he was rich. And he sought to see Jesus who he was; and could not for the press, because he was little of stature. And he ran before, and climbed up into a sycomore tree to see him: for he was to pass that way."
+    },
+    {
+     "q": "Jesus raised Lazarus from the dead. How long had Lazarus been dead?",
+     "type": "mc",
+     "options": [
+      "Three days",
+      "Four days",
+      "One day",
+      "Seven days"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "John 11:39-43",
+     "note": "KJV: Jesus said, Take ye away the stone. Martha, the sister of him that was dead, saith unto him, Lord, by this time he stinketh: for he hath been dead four days. Jesus saith unto her, Said I not unto thee, that, if thou wouldest believe, thou shouldest see the glory of God? Then they took away the stone from the place where the dead was laid. And Jesus lifted up his eyes, and said, Father, I"
+    },
+    {
+     "q": "Complete John 3:16: \"For God so loved the world, that he gave his only begotten ___.\"",
+     "type": "mc",
+     "options": [
+      "Lamb",
+      "Word",
+      "Spirit",
+      "Son"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "John 3:16",
+     "note": "KJV: For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life."
+    },
+    {
+     "q": "Which disciple said he would not believe until he saw the print of the nails?",
+     "type": "mc",
+     "options": [
+      "Thomas",
+      "Andrew",
+      "Philip",
+      "James"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "John 20:24-25",
+     "note": "KJV: But Thomas, one of the twelve, called Didymus, was not with them when Jesus came. The other disciples therefore said unto him, We have seen the Lord. But he said unto them, Except I shall see in his hands the print of the nails, and put my finger into the print of the nails, and thrust my hand into his side, I will not believe."
+    }
+   ]
+  },
+  {
+   "id": "round-3-mixed",
+   "title": "Round 3: Mixed",
+   "featured": false,
+   "questions": [
+    {
+     "q": "During the flood, how long did the rain fall upon the earth?",
+     "type": "mc",
+     "options": [
+      "One hundred days",
+      "Seven days and seven nights",
+      "Forty days and forty nights",
+      "Twelve days"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "Genesis 7:12",
+     "note": "KJV: And the rain was upon the earth forty days and forty nights."
+    },
+    {
+     "q": "What did God create on the first day?",
+     "type": "mc",
+     "options": [
+      "The sun and moon",
+      "Animals",
+      "Light",
+      "Dry land"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "Genesis 1:3-5",
+     "note": "KJV: And God said, Let there be light: and there was light. And God saw the light, that it was good: and God divided the light from the darkness. And God called the light Day, and the darkness he called Night. And the evening and the morning were the first day."
+    },
+    {
+     "q": "Who was made the first king of Israel?",
+     "type": "mc",
+     "options": [
+      "David",
+      "Solomon",
+      "Saul",
+      "Samuel"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "1 Samuel 11:15",
+     "note": "KJV: And all the people went to Gilgal; and there they made Saul king before the LORD in Gilgal; and there they sacrificed sacrifices of peace offerings before the LORD; and there Saul and all the men of Israel rejoiced greatly."
+    },
+    {
+     "q": "When God said \"Ask what I shall give thee\", what did Solomon ask for?",
+     "type": "mc",
+     "options": [
+      "Long life",
+      "Victory over his enemies",
+      "An understanding heart to judge the people",
+      "Riches and honour"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "1 Kings 3:5-9",
+     "note": "KJV: In Gibeon the LORD appeared to Solomon in a dream by night: and God said, Ask what I shall give thee. And Solomon said, Thou hast shewed unto thy servant David my father great mercy, according as he walked before thee in truth, and in righteousness, and in uprightness of heart with thee; and thou hast kept for him this great kindness, that thou hast given him a son to sit on his throne, "
+    },
+    {
+     "q": "What did Israel (Jacob) make for Joseph because he loved him more than his other children?",
+     "type": "mc",
+     "options": [
+      "A coat of many colours",
+      "A silver cup",
+      "A golden ring",
+      "A new tent"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Genesis 37:3",
+     "note": "KJV: Now Israel loved Joseph more than all his children, because he was the son of his old age: and he made him a coat of many colours."
+    },
+    {
+     "q": "Who baptized Jesus in the river Jordan?",
+     "type": "mc",
+     "options": [
+      "Andrew",
+      "Peter",
+      "Nicodemus",
+      "John the Baptist"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "Matthew 3:13",
+     "note": "KJV: Then cometh Jesus from Galilee to Jordan unto John, to be baptized of him."
+    },
+    {
+     "q": "For how many pieces of silver did Judas Iscariot agree to betray Jesus?",
+     "type": "mc",
+     "options": [
+      "Thirty",
+      "Ten",
+      "Twenty",
+      "Forty"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Matthew 26:14-15",
+     "note": "KJV: Then one of the twelve, called Judas Iscariot, went unto the chief priests, And said unto them, What will ye give me, and I will deliver him unto you? And they covenanted with him for thirty pieces of silver."
+    },
+    {
+     "q": "Saul (later Paul) saw a light from heaven on the road to which city?",
+     "type": "mc",
+     "options": [
+      "Damascus",
+      "Antioch",
+      "Rome",
+      "Jericho"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Acts 9:3",
+     "note": "KJV: And as he journeyed, he came near Damascus: and suddenly there shined round about him a light from heaven:"
+    },
+    {
+     "q": "On which day did the Holy Ghost come upon the disciples in Acts 2?",
+     "type": "mc",
+     "options": [
+      "The day of Pentecost",
+      "The Sabbath",
+      "The Passover",
+      "The day of Atonement"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Acts 2:1-4",
+     "note": "KJV: And when the day of Pentecost was fully come, they were all with one accord in one place. And suddenly there came a sound from heaven as of a rushing mighty wind, and it filled all the house where they were sitting. And there appeared unto them cloven tongues like as of fire, and it sat upon each of them. And they were all filled with the Holy Ghost, and began to speak with other tongues"
+    },
+    {
+     "q": "Where did Jesus go to pray with his disciples just before he was arrested?",
+     "type": "mc",
+     "options": [
+      "The temple",
+      "Golgotha",
+      "Gethsemane",
+      "Bethany"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "Matthew 26:36",
+     "note": "KJV: Then cometh Jesus with them unto a place called Gethsemane, and saith unto the disciples, Sit ye here, while I go and pray yonder."
+    }
+   ]
+  },
+  {
+   "id": "bible-bank",
+   "title": "Mixed bank (all 40 questions)",
+   "featured": false,
+   "questions": [
+    {
+     "q": "What did God create on the first day?",
+     "type": "mc",
+     "options": [
+      "Animals",
+      "Dry land",
+      "Light",
+      "The sun and moon"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "Genesis 1:3-5",
+     "note": "KJV: And God said, Let there be light: and there was light. And God saw the light, that it was good: and God divided the light from the darkness. And God called the light Day, and the darkness he called Night. And the evening and the morning were the first day."
+    },
+    {
+     "q": "On which day did the Holy Ghost come upon the disciples in Acts 2?",
+     "type": "mc",
+     "options": [
+      "The Sabbath",
+      "The day of Atonement",
+      "The day of Pentecost",
+      "The Passover"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "Acts 2:1-4",
+     "note": "KJV: And when the day of Pentecost was fully come, they were all with one accord in one place. And suddenly there came a sound from heaven as of a rushing mighty wind, and it filled all the house where they were sitting. And there appeared unto them cloven tongues like as of fire, and it sat upon each of them. And they were all filled with the Holy Ghost, and began to speak with other tongues"
+    },
+    {
+     "q": "When God said \"Ask what I shall give thee\", what did Solomon ask for?",
+     "type": "mc",
+     "options": [
+      "An understanding heart to judge the people",
+      "Riches and honour",
+      "Victory over his enemies",
+      "Long life"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "1 Kings 3:5-9",
+     "note": "KJV: In Gibeon the LORD appeared to Solomon in a dream by night: and God said, Ask what I shall give thee. And Solomon said, Thou hast shewed unto thy servant David my father great mercy, according as he walked before thee in truth, and in righteousness, and in uprightness of heart with thee; and thou hast kept for him this great kindness, that thou hast given him a son to sit on his throne, "
+    },
+    {
+     "q": "Which prophet went up into heaven by a whirlwind?",
+     "type": "mc",
+     "options": [
+      "Isaiah",
+      "Elisha",
+      "Ezekiel",
+      "Elijah"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "2 Kings 2:11",
+     "note": "KJV: And it came to pass, as they still went on, and talked, that, behold, there appeared a chariot of fire, and horses of fire, and parted them both asunder; and Elijah went up by a whirlwind into heaven."
+    },
+    {
+     "q": "Complete the verse: \"The LORD is my shepherd; I shall not ___.\"",
+     "type": "mc",
+     "options": [
+      "want",
+      "fear",
+      "worry",
+      "fall"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Psalm 23:1",
+     "note": "KJV: The LORD is my shepherd; I shall not want."
+    },
+    {
+     "q": "Samson said his strength would leave him if what happened?",
+     "type": "mc",
+     "options": [
+      "If he left Israel",
+      "If his head was shaven",
+      "If he lost his sword",
+      "If he drank wine"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "Judges 16:17",
+     "note": "KJV: That he told her all his heart, and said unto her. There hath not come a razor upon mine head; for I have been a Nazarite unto God from my mother's womb: if I be shaven, then my strength will go from me, and I shall become weak, and be like any other man."
+    },
+    {
+     "q": "For how many pieces of silver did Judas Iscariot agree to betray Jesus?",
+     "type": "mc",
+     "options": [
+      "Thirty",
+      "Ten",
+      "Twenty",
+      "Forty"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Matthew 26:14-15",
+     "note": "KJV: Then one of the twelve, called Judas Iscariot, went unto the chief priests, And said unto them, What will ye give me, and I will deliver him unto you? And they covenanted with him for thirty pieces of silver."
+    },
+    {
+     "q": "Who said to Naomi, \"whither thou goest, I will go\"?",
+     "type": "mc",
+     "options": [
+      "Ruth",
+      "Rahab",
+      "Orpah",
+      "Hannah"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Ruth 1:16",
+     "note": "KJV: And Ruth said, Intreat me not to leave thee, or to return from following after thee: for whither thou goest, I will go; and where thou lodgest, I will lodge: thy people shall be my people, and thy God my God:"
+    },
+    {
+     "q": "At the burning bush, whom did God send to bring the children of Israel out of Egypt?",
+     "type": "mc",
+     "options": [
+      "Caleb",
+      "Aaron",
+      "Joshua",
+      "Moses"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "Exodus 3:10-11",
+     "note": "KJV: Come now therefore, and I will send thee unto Pharaoh, that thou mayest bring forth my people the children of Israel out of Egypt. And Moses said unto God, Who am I, that I should go unto Pharaoh, and that I should bring forth the children of Israel out of Egypt?"
+    },
+    {
+     "q": "Who was made the first king of Israel?",
+     "type": "mc",
+     "options": [
+      "David",
+      "Solomon",
+      "Samuel",
+      "Saul"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "1 Samuel 11:15",
+     "note": "KJV: And all the people went to Gilgal; and there they made Saul king before the LORD in Gilgal; and there they sacrificed sacrifices of peace offerings before the LORD; and there Saul and all the men of Israel rejoiced greatly."
+    },
+    {
+     "q": "Which disciple said he would not believe until he saw the print of the nails?",
+     "type": "mc",
+     "options": [
+      "Andrew",
+      "Thomas",
+      "James",
+      "Philip"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "John 20:24-25",
+     "note": "KJV: But Thomas, one of the twelve, called Didymus, was not with them when Jesus came. The other disciples therefore said unto him, We have seen the Lord. But he said unto them, Except I shall see in his hands the print of the nails, and put my finger into the print of the nails, and thrust my hand into his side, I will not believe."
+    },
+    {
+     "q": "Who did God tell to build an ark of gopher wood?",
+     "type": "mc",
+     "options": [
+      "Moses",
+      "Lot",
+      "Abraham",
+      "Noah"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "Genesis 6:13-14",
+     "note": "KJV: And God said unto Noah, The end of all flesh is come before me; for the earth is filled with violence through them; and, behold, I will destroy them with the earth. Make thee an ark of gopher wood; rooms shalt thou make in the ark, and shalt pitch it within and without with pitch."
+    },
+    {
+     "q": "When Jesus fed the five thousand, there were five loaves and how many fishes?",
+     "type": "mc",
+     "options": [
+      "Five",
+      "Seven",
+      "Twelve",
+      "Two"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "Matthew 14:17",
+     "note": "KJV: And they say unto him, We have here but five loaves, and two fishes."
+    },
+    {
+     "q": "What did Israel (Jacob) make for Joseph because he loved him more than his other children?",
+     "type": "mc",
+     "options": [
+      "A silver cup",
+      "A new tent",
+      "A golden ring",
+      "A coat of many colours"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "Genesis 37:3",
+     "note": "KJV: Now Israel loved Joseph more than all his children, because he was the son of his old age: and he made him a coat of many colours."
+    },
+    {
+     "q": "Where did Jesus go to pray with his disciples just before he was arrested?",
+     "type": "mc",
+     "options": [
+      "Golgotha",
+      "Bethany",
+      "The temple",
+      "Gethsemane"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "Matthew 26:36",
+     "note": "KJV: Then cometh Jesus with them unto a place called Gethsemane, and saith unto the disciples, Sit ye here, while I go and pray yonder."
+    },
+    {
+     "q": "Who prayed for a son at Shiloh and named him Samuel?",
+     "type": "mc",
+     "options": [
+      "Hannah",
+      "Ruth",
+      "Deborah",
+      "Naomi"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "1 Samuel 1:20",
+     "note": "KJV: Wherefore it came to pass, when the time was come about after Hannah had conceived, that she bare a son, and called his name Samuel, saying, Because I have asked him of the LORD."
+    },
+    {
+     "q": "Complete the commandment: \"Honour thy father and thy ___.\"",
+     "type": "mc",
+     "options": [
+      "mother",
+      "brother",
+      "elders",
+      "neighbour"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Exodus 20:12",
+     "note": "KJV: Honour thy father and thy mother: that thy days may be long upon the land which the LORD thy God giveth thee."
+    },
+    {
+     "q": "Saul (later Paul) saw a light from heaven on the road to which city?",
+     "type": "mc",
+     "options": [
+      "Jericho",
+      "Antioch",
+      "Damascus",
+      "Rome"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "Acts 9:3",
+     "note": "KJV: And as he journeyed, he came near Damascus: and suddenly there shined round about him a light from heaven:"
+    },
+    {
+     "q": "Who baptized Jesus in the river Jordan?",
+     "type": "mc",
+     "options": [
+      "John the Baptist",
+      "Andrew",
+      "Peter",
+      "Nicodemus"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Matthew 3:13",
+     "note": "KJV: Then cometh Jesus from Galilee to Jordan unto John, to be baptized of him."
+    },
+    {
+     "q": "How many apostles did Jesus ordain to be with him?",
+     "type": "mc",
+     "options": [
+      "Seventy",
+      "Twelve",
+      "Seven",
+      "Ten"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "Mark 3:14",
+     "note": "KJV: And he ordained twelve, that they should be with him, and that he might send them forth to preach,"
+    },
+    {
+     "q": "What did Esau sell to his brother Jacob for bread and pottage of lentiles?",
+     "type": "mc",
+     "options": [
+      "His coat",
+      "His land",
+      "His birthright",
+      "His flock"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "Genesis 25:33-34",
+     "note": "KJV: And Jacob said, Swear to me this day; and he sware unto him: and he sold his birthright unto Jacob. Then Jacob gave Esau bread and pottage of lentiles; and he did eat and drink, and rose up, and went his way: thus Esau despised his birthright."
+    },
+    {
+     "q": "Which of these is listed as a fruit of the Spirit in Galatians 5?",
+     "type": "mc",
+     "options": [
+      "Fame",
+      "Longsuffering",
+      "Riches",
+      "Strength"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "Galatians 5:22-23",
+     "note": "KJV: But the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith, Meekness, temperance: against such there is no law."
+    },
+    {
+     "q": "Who was the wife of Abraham and the mother of Isaac?",
+     "type": "mc",
+     "options": [
+      "Rachel",
+      "Rebekah",
+      "Leah",
+      "Sarah"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "Genesis 21:2-3",
+     "note": "KJV: For Sarah conceived, and bare Abraham a son in his old age, at the set time of which God had spoken to him. And Abraham called the name of his son that was born unto him, whom Sarah bare to him, Isaac."
+    },
+    {
+     "q": "What was the name of the mother of Jesus?",
+     "type": "mc",
+     "options": [
+      "Anna",
+      "Mary",
+      "Martha",
+      "Elisabeth"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "Matthew 1:18",
+     "note": "KJV: Now the birth of Jesus Christ was on this wise: When as his mother Mary was espoused to Joseph, before they came together, she was found with child of the Holy Ghost."
+    },
+    {
+     "q": "According to Jesus, what is the first and great commandment?",
+     "type": "mc",
+     "options": [
+      "Keep the sabbath day holy",
+      "Love the Lord thy God with all thy heart",
+      "Thou shalt not steal",
+      "Honour thy father and mother"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "Matthew 22:37-38",
+     "note": "KJV: Jesus said unto him, Thou shalt love the Lord thy God with all thy heart, and with all thy soul, and with all thy mind. This is the first and great commandment."
+    },
+    {
+     "q": "Which son of Jacob was sold by his brothers to the Ishmeelites?",
+     "type": "mc",
+     "options": [
+      "Joseph",
+      "Benjamin",
+      "Judah",
+      "Reuben"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Genesis 37:28",
+     "note": "KJV: Then there passed by Midianites merchantmen; and they drew and lifted up Joseph out of the pit, and sold Joseph to the Ishmeelites for twenty pieces of silver: and they brought Joseph into Egypt."
+    },
+    {
+     "q": "Which prophet was swallowed by a great fish?",
+     "type": "mc",
+     "options": [
+      "Jeremiah",
+      "Jonah",
+      "Amos",
+      "Elijah"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "Jonah 1:17",
+     "note": "KJV: Now the LORD had prepared a great fish to swallow up Jonah. And Jonah was in the belly of the fish three days and three nights."
+    },
+    {
+     "q": "During the flood, how long did the rain fall upon the earth?",
+     "type": "mc",
+     "options": [
+      "Seven days and seven nights",
+      "Forty days and forty nights",
+      "One hundred days",
+      "Twelve days"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "Genesis 7:12",
+     "note": "KJV: And the rain was upon the earth forty days and forty nights."
+    },
+    {
+     "q": "Who climbed up into a sycomore tree to see Jesus?",
+     "type": "mc",
+     "options": [
+      "Bartimaeus",
+      "Matthew",
+      "Zacchaeus",
+      "Nicodemus"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "Luke 19:2-4",
+     "note": "KJV: And, behold, there was a man named Zacchaeus, which was the chief among the publicans, and he was rich. And he sought to see Jesus who he was; and could not for the press, because he was little of stature. And he ran before, and climbed up into a sycomore tree to see him: for he was to pass that way."
+    },
+    {
+     "q": "Who did God appoint to speak for Moses because Moses said he was slow of speech?",
+     "type": "mc",
+     "options": [
+      "Jethro, his father-in-law",
+      "Miriam, his sister",
+      "Aaron, his brother",
+      "Joshua, his servant"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "Exodus 4:14",
+     "note": "KJV: And the anger of the LORD was kindled against Moses, and he said, Is not Aaron the Levite thy brother? I know that he can speak well. And also, behold, he cometh forth to meet thee: and when he seeth thee, he will be glad in his heart."
+    },
+    {
+     "q": "What was Jesus' first miracle, at the marriage in Cana of Galilee?",
+     "type": "mc",
+     "options": [
+      "Healing a blind man",
+      "Turning water into wine",
+      "Feeding the five thousand",
+      "Walking on water"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "John 2:9-11",
+     "note": "KJV: When the ruler of the feast had tasted the water that was made wine, and knew not whence it was: (but the servants which drew the water knew;) the governor of the feast called the bridegroom, And saith unto him, Every man at the beginning doth set forth good wine; and when men have well drunk, then that which is worse: but thou hast kept the good wine until now. This beginning of miracle"
+    },
+    {
+     "q": "Complete John 3:16: \"For God so loved the world, that he gave his only begotten ___.\"",
+     "type": "mc",
+     "options": [
+      "Lamb",
+      "Spirit",
+      "Word",
+      "Son"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "John 3:16",
+     "note": "KJV: For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life."
+    },
+    {
+     "q": "In which town was Jesus born?",
+     "type": "mc",
+     "options": [
+      "Capernaum",
+      "Nazareth",
+      "Bethlehem of Judaea",
+      "Jerusalem"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "Matthew 2:1",
+     "note": "KJV: Now when Jesus was born in Bethlehem of Judaea in the days of Herod the king, behold, there came wise men from the east to Jerusalem,"
+    },
+    {
+     "q": "Who was cast into the den of lions for praying to God?",
+     "type": "mc",
+     "options": [
+      "Daniel",
+      "Joseph",
+      "Jeremiah",
+      "Nehemiah"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Daniel 6:16",
+     "note": "KJV: Then the king commanded, and they brought Daniel, and cast him into the den of lions. Now the king spake and said unto Daniel, Thy God whom thou servest continually, he will deliver thee."
+    },
+    {
+     "q": "Jesus raised Lazarus from the dead. How long had Lazarus been dead?",
+     "type": "mc",
+     "options": [
+      "Three days",
+      "Seven days",
+      "Four days",
+      "One day"
+     ],
+     "answer": 2,
+     "time": 20,
+     "source": "John 11:39-43",
+     "note": "KJV: Jesus said, Take ye away the stone. Martha, the sister of him that was dead, saith unto him, Lord, by this time he stinketh: for he hath been dead four days. Jesus saith unto her, Said I not unto thee, that, if thou wouldest believe, thou shouldest see the glory of God? Then they took away the stone from the place where the dead was laid. And Jesus lifted up his eyes, and said, Father, I"
+    },
+    {
+     "q": "In the first plague of Egypt, what happened to the waters of the river?",
+     "type": "mc",
+     "options": [
+      "They became full of frogs",
+      "They dried up",
+      "They turned to ice",
+      "They turned to blood"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "Exodus 7:20",
+     "note": "KJV: And Moses and Aaron did so, as the LORD commanded; and he lifted up the rod, and smote the waters that were in the river, in the sight of Pharaoh, and in the sight of his servants; and all the waters that were in the river were turned to blood."
+    },
+    {
+     "q": "Who defeated the giant Goliath with a sling and a stone?",
+     "type": "mc",
+     "options": [
+      "Jonathan",
+      "David",
+      "Samson",
+      "Saul"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "1 Samuel 17:50",
+     "note": "KJV: So David prevailed over the Philistine with a sling and with a stone, and smote the Philistine, and slew him; but there was no sword in the hand of David."
+    },
+    {
+     "q": "Who denied Jesus three times before the cock crew?",
+     "type": "mc",
+     "options": [
+      "Judas",
+      "Peter",
+      "Thomas",
+      "John"
+     ],
+     "answer": 1,
+     "time": 20,
+     "source": "Luke 22:61",
+     "note": "KJV: And the Lord turned, and looked upon Peter. And Peter remembered the word of the Lord, how he had said unto him, Before the cock crow, thou shalt deny me thrice."
+    },
+    {
+     "q": "Whose walls fell down after the Israelites marched around them for seven days?",
+     "type": "mc",
+     "options": [
+      "Jericho",
+      "Babylon",
+      "Jerusalem",
+      "Nineveh"
+     ],
+     "answer": 0,
+     "time": 20,
+     "source": "Hebrews 11:30",
+     "note": "KJV: By faith the walls of Jericho fell down, after they were compassed about seven days."
+    },
+    {
+     "q": "Which queen said \"if I perish, I perish\" before going in to the king?",
+     "type": "mc",
+     "options": [
+      "Vashti",
+      "The queen of Sheba",
+      "Jezebel",
+      "Esther"
+     ],
+     "answer": 3,
+     "time": 20,
+     "source": "Esther 4:16",
+     "note": "KJV: Go, gather together all the Jews that are present in Shushan, and fast ye for me, and neither eat nor drink three days, night or day: I also and my maidens will fast likewise; and so will I go in unto the king, which is not according to the law: and if I perish, I perish."
+    }
+   ]
+  }
+ ]
+}

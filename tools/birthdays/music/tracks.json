@@ -1,0 +1,122 @@
+[
+{
+"secs": 64.722,
+"loop_start": 4.444,
+"loop_end": 40.0,
+"month": 1,
+"name": "Afrobeat Celebration",
+"bpm": 108,
+"duration": 64.65,
+"lufs": -15.26
+},
+{
+"secs": 62.5,
+"loop_start": 4.286,
+"loop_end": 38.571,
+"month": 2,
+"name": "Gospel Piano",
+"bpm": 84,
+"duration": 62.43,
+"lufs": -15.35
+},
+{
+"secs": 58.5,
+"loop_start": 4.0,
+"loop_end": 36.0,
+"month": 3,
+"name": "Highlife Guitars",
+"bpm": 120,
+"duration": 58.44,
+"lufs": -15.18
+},
+{
+"secs": 51.591,
+"loop_start": 2.727,
+"loop_end": 35.455,
+"month": 4,
+"name": "Marimba Dance",
+"bpm": 132,
+"duration": 51.54,
+"lufs": -15.31
+},
+{
+"secs": 60.431,
+"loop_start": 4.138,
+"loop_end": 37.241,
+"month": 5,
+"name": "Brass Band Parade",
+"bpm": 116,
+"duration": 60.37,
+"lufs": -15.15
+},
+{
+"secs": 55.0,
+"loop_start": 3.75,
+"loop_end": 33.75,
+"month": 6,
+"name": "Acoustic Sunday",
+"bpm": 96,
+"duration": 54.94,
+"lufs": -14.95
+},
+{
+"secs": 59.449,
+"loop_start": 4.068,
+"loop_end": 36.61,
+"month": 7,
+"name": "Island Steel Pan",
+"bpm": 118,
+"duration": 59.38,
+"lufs": -15.35
+},
+{
+"secs": 45.7,
+"loop_start": 2.4,
+"loop_end": 31.2,
+"month": 8,
+"name": "Jazz Waltz",
+"bpm": 150,
+"duration": 45.64,
+"lufs": -15.37
+},
+{
+"secs": 58.5,
+"loop_start": 4.0,
+"loop_end": 36.0,
+"month": 9,
+"name": "Music Box Lullaby",
+"bpm": 90,
+"duration": 58.44,
+"lufs": -15.04
+},
+{
+"secs": 62.5,
+"loop_start": 4.286,
+"loop_end": 38.571,
+"month": 10,
+"name": "Amapiano Groove",
+"bpm": 112,
+"duration": 62.43,
+"lufs": -15.29
+},
+{
+"secs": 59.773,
+"loop_start": 4.091,
+"loop_end": 36.818,
+"month": 11,
+"name": "Strings and Bells",
+"bpm": 88,
+"duration": 59.72,
+"lufs": -14.88
+},
+{
+"secs": 55.833,
+"loop_start": 3.81,
+"loop_end": 34.286,
+"month": 12,
+"name": "Festive Bells",
+"bpm": 126,
+"duration": 55.77,
+"lufs": -15.27
+}
+]

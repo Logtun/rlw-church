@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RLW Bible Quiz: question editor</title>
+<meta name="description" content="Add, edit, import and export Bible quiz questions. Host only.">
+<meta name="theme-color" content="#050505">
+<meta property="og:title" content="RLW Bible Quiz: question editor">
+<meta property="og:description" content="Add, edit, import and export Bible quiz questions. Host only.">
+<meta property="og:image" content="https://rlw-bible-quiz.sites.tab.bot/og.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="RLW Bible Quiz Night">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css?v=rlw2p">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><img src="logo.png" alt="Rivers of Living Water Parish" height="40"><span class="q">Bible Quiz</span></a>
+  <nav aria-label="Main"><a href="index.html">Join</a><a href="solo.html">Solo</a><a href="host.html">Host</a><a href="editor.html" aria-current="page">Editor</a></nav>
+</header>
+<main id="main">
+
+<div id="app">
+  <form class="card wrap-narrow hide" id="login" autocomplete="off">
+    <h2>Host login</h2>
+    <p class="muted">The editor is for the quiz host.</p>
+    <div class="field"><label for="pw">Host password</label><input id="pw" type="password" autocomplete="current-password" required></div>
+    <button class="btn primary big" type="submit">Log in</button>
+    <p class="err" id="loginErr" role="alert"></p>
+  </form>
+  <div id="view"></div>
+</div>
+
+</main>
+<footer><div>Rivers of Living Water Parish</div><div style="margin-top:6px;font-size:.85em;opacity:.8">© 2026 Rivers Of Living Water</div></footer>
+<script src="common.js?v=u1"></script><script src="editor.js?v=u1"></script>
+</body>
+</html>

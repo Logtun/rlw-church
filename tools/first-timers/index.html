@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Welcome · Rivers of Living Water Parish</title>
+<meta name="description" content="First time at RCCG Rivers of Living Water Parish? Say hello in 30 seconds.">
+<meta property="og:title" content="Welcome to Rivers of Living Water Parish">
+<meta property="og:description" content="First time with us? Say hello in 30 seconds.">
+<meta property="og:image" content="https://rlw-first-timers.sites.tab.bot/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:url" content="https://rlw-first-timers.sites.tab.bot/">
+<meta name="theme-color" content="#07080c">
+<link rel="stylesheet" href="app.css?v=u1">
+</head>
+<body>
+<main class="wrap">
+<header class="brand">
+<img src="logo.jpg" width="244" height="320" alt="RCCG Rivers of Living Water Parish logo">
+<h1>Welcome to Rivers of Living Water Parish</h1>
+<p class="lead">We're so glad you came. Tell us a little about you, it takes about 30 seconds.</p>
+<div class="accent" aria-hidden="true"></div>
+</header>
+
+<section id="formCard" class="card" aria-labelledby="formTitle">
+<h2 id="formTitle" class="hidden">First-timer card</h2>
+<form id="f" novalidate>
+<div class="field" id="w_full_name">
+<label for="full_name">Full name</label>
+<input type="text" id="full_name" name="full_name" autocomplete="name" maxlength="80" required placeholder="e.g. Chidinma Okafor">
+<p class="err" aria-live="polite"></p>
+</div>
+<div class="field" id="w_phone">
+<label for="phone">Phone (WhatsApp) number</label>
+<input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" maxlength="20" required placeholder="0803 123 4567">
+<p class="hint">080…, +234… or 234… all work.</p>
+<p class="err" aria-live="polite"></p>
+</div>
+<div class="field" id="w_gender">
+<span class="lbl" id="l_gender">Gender <span class="opt">(optional)</span></span>
+<div class="choices" role="radiogroup" aria-labelledby="l_gender"><label><input type="radio" name="gender" value="Male"><span>Male</span></label><label><input type="radio" name="gender" value="Female"><span>Female</span></label></div>
+</div>
+<div class="field" id="w_age_range">
+<span class="lbl" id="l_age">Age range</span>
+<div class="choices" role="radiogroup" aria-labelledby="l_age"><label><input type="radio" name="age_range" value="Under 18" required><span>Under 18</span></label><label><input type="radio" name="age_range" value="18-25"><span>18-25</span></label><label><input type="radio" name="age_range" value="26-35"><span>26-35</span></label><label><input type="radio" name="age_range" value="36-50"><span>36-50</span></label><label><input type="radio" name="age_range" value="50+"><span>50+</span></label></div>
+<p class="err" aria-live="polite"></p>
+</div>
+<div class="field" id="w_area">
+<label for="area">Area / address <span class="opt">(optional)</span></label>
+<input type="text" id="area" name="area" autocomplete="street-address" maxlength="160" placeholder="Your street or area">
+</div>
+<div class="field" id="w_heard">
+<span class="lbl" id="l_heard">How did you hear about us?</span>
+<div class="choices" role="radiogroup" aria-labelledby="l_heard"><label><input type="radio" name="heard" value="Invited by a member" required><span>Invited by a member</span></label><label><input type="radio" name="heard" value="Social media"><span>Social media</span></label><label><input type="radio" name="heard" value="Passing by"><span>Passing by</span></label><label><input type="radio" name="heard" value="Other"><span>Other</span></label></div>
+<input type="text" id="heard_other" name="heard_other" class="hidden" maxlength="120" placeholder="Tell us how" aria-label="How you heard about us" style="margin-top:8px">
+<p class="err" aria-live="polite"></p>
+</div>
+<div class="field" id="w_wants_visit">
+<span class="lbl" id="l_visit">Would you like a visit or a call?</span>
+<div class="choices" role="radiogroup" aria-labelledby="l_visit"><label><input type="radio" name="wants_visit" value="Yes" required><span>Yes</span></label><label><input type="radio" name="wants_visit" value="No"><span>No</span></label></div>
+<p class="err" aria-live="polite"></p>
+</div>
+<div class="field" id="w_prayer">
+<label for="prayer">Prayer request <span class="opt">(optional)</span></label>
+<textarea id="prayer" name="prayer" maxlength="1500" placeholder="Share anything you'd like us to pray about."></textarea>
+<p class="hint private">Private: only the parish follow-up team sees this.</p>
+</div>
+<div class="field">
+<label class="check" for="consent"><input type="checkbox" id="consent" name="consent" value="1"><span>The follow-up team may contact me</span></label>
+</div>
+<div class="hp" aria-hidden="true"><label for="website">Leave this empty</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
+<p class="err" id="formErr" aria-live="polite"></p>
+<button class="btn block" type="submit" id="go">Send my card</button>
+</form>
+</section>
+
+<section id="thanks" class="card thanks hidden" aria-live="polite" tabindex="-1">
+<div class="tick" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+<h1 id="thanksTitle">Thank you!</h1>
+<p class="lead" id="thanksText">We're glad you worshipped with us today. Someone from our follow-up team will be in touch soon. You are welcome here, come again!</p>
+<button class="btn ghost" type="button" id="another">Fill another card</button>
+</section>
+</main>
+<footer class="foot">Rivers of Living Water Parish<span style="display:block;margin-top:6px;font-size:.85em;opacity:.8">© 2026 Rivers Of Living Water</span></footer>
+<script src="checkin.js?v=u1"></script>
+</body>
+</html>

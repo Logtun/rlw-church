@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="logo.jpg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin · RLW Workers' Attendance</title>
+<meta name="theme-color" content="#06070a">
+<link rel="stylesheet" href="app.css?v=u1">
+</head>
+<body>
+<main class="wrap wide">
+<section id="loginView" class="hidden" aria-labelledby="loginTitle">
+<header class="brand"><img src="logo.jpg" width="244" height="320" alt="RCCG Rivers of Living Water Parish logo" style="width:92px"><h1 id="loginTitle">Workers' Attendance</h1><p class="lead">Admin only.</p><div class="accent" aria-hidden="true"></div></header>
+<form id="loginForm" class="card" style="max-width:420px;margin:0 auto">
+<div class="field"><label for="pw">Admin password</label><input type="password" id="pw" autocomplete="current-password" required></div>
+<p class="err" id="loginErr" aria-live="polite"></p>
+<button class="btn block navy" type="submit" id="loginBtn">Sign in</button>
+</form>
+</section>
+
+<section id="appView" class="hidden">
+<div class="topbar">
+<div class="who"><img src="logo.jpg" width="244" height="320" alt=""><div><h1>RLW Workers' Attendance</h1><div class="small">Rivers of Living Water Parish · Admin</div></div></div>
+<div class="row"><a class="btn ghost sm" href="poster">QR poster</a><button class="btn ghost sm" type="button" id="logout">Sign out</button></div>
+</div>
+<nav class="tabs" role="tablist" aria-label="Sections">
+<button type="button" role="tab" id="t-day" aria-selected="true" aria-controls="p-day">Sunday table</button>
+<button type="button" role="tab" id="t-month" aria-selected="false" aria-controls="p-month">Month report</button>
+<button type="button" role="tab" id="t-workers" aria-selected="false" aria-controls="p-workers">Workers</button>
+<button type="button" role="tab" id="t-settings" aria-selected="false" aria-controls="p-settings">Settings</button>
+</nav>
+<p class="err" id="appErr" aria-live="polite"></p>
+
+<section id="p-day" role="tabpanel" aria-labelledby="t-day">
+<div class="row">
+<div class="field"><label for="dDate">Service date</label><input type="date" id="dDate"></div>
+<div class="field" style="flex:0 1 auto"><button class="btn ghost" type="button" id="dPrev" aria-label="Previous service day">&larr; Prev</button> <button class="btn ghost" type="button" id="dNext" aria-label="Next service day">Next &rarr;</button></div>
+<div class="field" style="flex:0 1 auto"><button class="btn navy" type="button" id="dCsv">Export CSV</button></div>
+</div>
+<div id="dNotice" class="notice hidden" style="margin-top:12px"></div>
+<div class="counts" aria-live="polite">
+<div class="stat"><b id="cOn">0</b><span>On time</span></div>
+<div class="stat"><b id="cLate">0</b><span>Late</span></div>
+<div class="stat"><b id="cAbs">0</b><span id="cAbsL">Absent</span></div>
+<div class="stat"><b id="cExc">0</b><span>Excused</span></div>
+<div class="stat"><b id="cTot">0</b><span>Workers</span></div>
+</div>
+<div class="tablewrap"><table id="dTable"><thead><tr><th>#</th><th>Name</th><th>Unit</th><th>Arrived</th><th>Status</th><th>Note</th><th>Fix</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section id="p-month" role="tabpanel" aria-labelledby="t-month" class="hidden">
+<div class="row">
+<div class="field"><label for="mMonth">Month</label><input type="month" id="mMonth"></div>
+<div class="field" style="flex:0 1 auto"><button class="btn navy" type="button" id="mCsv">Export CSV</button></div>
+</div>
+<p class="small" id="mDays" style="margin:10px 0 0"></p>
+<div class="notice" style="margin-top:12px"><b>How the score works.</b> Each service: on time = 100 points. Late = 100 minus 2 points for every minute late (so 10 minutes late = 80, 50 minutes or more = 0). Absent = 0. Excused services are not counted. A worker's score is the average over their services. Ties go to the worker who arrives earlier on average.</div>
+<div id="mEmpty" class="notice warn hidden"></div>
+<div id="mHighlights" class="grid2">
+<div class="card"><h2 style="margin-top:0">Top 3 most punctual</h2><div class="podium" id="mTop"></div><p class="small" id="mTopLine"></p></div>
+<div class="card"><h2 style="margin-top:0">Encouraged to improve</h2><div class="encourage" id="mBot"></div></div>
+</div>
+<div class="card">
+<h2 style="margin-top:0">Share card for the workers' group</h2>
+<label class="check"><input type="checkbox" id="mIncBot" checked> Include "Encouraged to improve" (bottom 3)</label>
+<canvas id="mCanvas" width="1080" height="1350" class="hidden"></canvas>
+<img id="mCardImg" class="cardprev" alt="Monthly punctuality card preview">
+<div class="row"><button class="btn" type="button" id="mShare">Share card</button><button class="btn navy" type="button" id="mDl">Download image</button></div>
+<p class="small" id="mShareMsg" aria-live="polite"></p>
+</div>
+<h2>Full ranking</h2>
+<div class="tablewrap"><table id="mTable"><thead><tr><th class="num">Rank</th><th>Name</th><th>Unit</th><th class="num">Services</th><th class="num">On time</th><th class="num">Late</th><th class="num">Absent</th><th class="num">Excused</th><th>Avg arrival</th><th class="num">Score</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section id="p-workers" role="tabpanel" aria-labelledby="t-workers" class="hidden">
+<div class="grid2">
+<form class="card" id="addOne">
+<h2 style="margin-top:0">Add a worker</h2>
+<div class="field"><label for="aName">Full name</label><input type="text" id="aName" maxlength="80" required placeholder="e.g. Bro. Tunde Bakare"></div>
+<div class="field"><label for="aUnit">Unit / department (optional)</label><input type="text" id="aUnit" maxlength="60" placeholder="e.g. Choir, Ushering, Media"></div>
+<div class="field"><label for="aPhone">Phone (optional)</label><input type="tel" id="aPhone" maxlength="20" placeholder="0803 123 4567"></div>
+<div class="field"><label for="aSince">Counts from</label><input type="date" id="aSince"><p class="hint">Services before this date are not counted for this worker.</p></div>
+<button class="btn" type="submit">Add worker</button>
+<p class="ok" id="aMsg" aria-live="polite"></p>
+</form>
+<form class="card" id="addBulk">
+<h2 style="margin-top:0">Add many at once</h2>
+<div class="field"><label for="bNames">Names, one per line</label><textarea id="bNames" placeholder="Sis. Grace Okafor&#10;Bro. Emeka Obi&#10;Deaconess Funmi Ade"></textarea></div>
+<div class="field"><label for="bUnit">Unit for all of them (optional)</label><input type="text" id="bUnit" maxlength="60"></div>
+<div class="field"><label for="bSince">Counts from</label><input type="date" id="bSince"></div>
+<button class="btn" type="submit">Add all</button>
+<p class="ok" id="bMsg" aria-live="polite"></p>
+</form>
+</div>
+<h2 id="wCount">Workers</h2>
+<input type="search" id="wQ" placeholder="Search workers" aria-label="Search workers" style="margin-bottom:8px">
+<div class="card wlist" id="wList"></div>
+</section>
+
+<section id="p-settings" role="tabpanel" aria-labelledby="t-settings" class="hidden">
+<form class="card" id="sForm">
+<h2 style="margin-top:0">Service time</h2>
+<div class="row">
+<div class="field"><label for="sStart">Service starts</label><input type="time" id="sStart" required></div>
+<div class="field"><label for="sGrace">Grace minutes</label><input type="number" id="sGrace" min="0" max="60" step="1"></div>
+</div>
+<p class="hint">Arriving up to the grace minutes after the start still counts as on time. Late minutes are counted from the start time.</p>
+<h2>Check-in window</h2>
+<div class="row">
+<div class="field"><label for="sOpen">Opens</label><input type="time" id="sOpen" required></div>
+<div class="field"><label for="sClose">Closes</label><input type="time" id="sClose" required></div>
+</div>
+<p class="hint">The scan page only accepts check-ins on service days inside this window (Lagos time). After it closes, anyone who did not check in is marked Absent.</p>
+<button class="btn" type="submit" style="margin-top:12px">Save settings</button>
+<p class="ok" id="sMsg" aria-live="polite"></p>
+</form>
+<form class="card" id="xForm">
+<h2 style="margin-top:0">Extra service days</h2>
+<p class="small">Every Sunday is a service day. Add other dates here, for example a special service or vigil.</p>
+<div class="row">
+<div class="field"><label for="xDate">Date</label><input type="date" id="xDate" required></div>
+<div class="field"><label for="xLabel">Name (optional)</label><input type="text" id="xLabel" maxlength="60" placeholder="e.g. Thanksgiving service"></div>
+<div class="field" style="flex:0 1 auto"><button class="btn" type="submit">Add day</button></div>
+</div>
+<p class="err" id="xMsg" aria-live="polite"></p>
+<div id="xList" class="wlist" style="margin-top:10px"></div>
+</form>
+</section>
+</section>
+</main>
+<footer class="foot">Rivers of Living Water Parish<span style="display:block;margin-top:6px;font-size:.85em;opacity:.8">© 2026 Rivers Of Living Water</span></footer>
+<script src="card.js?v=u1"></script>
+<script src="admin.js?v=u1"></script>
+</body>
+</html>

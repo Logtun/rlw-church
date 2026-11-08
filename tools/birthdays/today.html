@@ -1,0 +1,43 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Celebrating today</title>
+<style>html,body{margin:0;background:transparent;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#w{max-width:360px;margin:0 auto;padding:4px 4px 0}
+.vp{overflow:hidden;border-radius:14px;box-shadow:0 6px 18px rgba(20,30,80,.18);pointer-events:none}
+.tr{display:flex;transition:transform .6s cubic-bezier(.4,0,.2,1)}
+.tr img{flex:0 0 100%;width:100%;display:block;user-select:none;-webkit-user-drag:none}
+.dots{display:flex;justify-content:center;gap:8px;padding:12px 0 4px}
+.dots span{width:9px;height:9px;border-radius:50%;border:0;padding:0;background:#c9cfe0;transition:all .3s}
+.dots span.on{background:#1B2A6B;width:22px;border-radius:5px}
+.cnt{text-align:center;color:#1B2A6B;font-size:13px;font-weight:600;padding-bottom:2px}
+@media (prefers-reduced-motion:reduce){.tr{transition:none}}</style></head><body><div id="w"></div>
+<script src="art.js?v=u1"></script><script src="themes.js?v=u1"></script>
+<script>
+(function(){
+  var w=document.getElementById("w");
+  function post(n){var h=n?Math.ceil(w.getBoundingClientRect().height)+8:0;try{parent.postMessage({rlwToday:true,count:n,height:h},"*")}catch(e){}}
+  fetch("api/today",{cache:"no-store"}).then(function(r){return r.json()}).then(async function(j){
+    if(!j||!j.ok||!j.celebrants.length){post(0);return}
+    RLW.CLASSIC_ON=!!j.classic;
+    await RLW.fonts(); var logo=await RLW.logo();
+    var n=j.celebrants.length,vp=document.createElement("div"),tr=document.createElement("div");vp.className="vp";tr.className="tr";vp.appendChild(tr);w.appendChild(vp);
+    var loaded=0;
+    for(var i=0;i<n;i++){var m=j.celebrants[i];
+      var ph=m.photo?await RLW.loadImg(m.photo).catch(function(){return null}):null;
+      var cv=RLW.drawSingle(document.createElement("canvas"),{name:m.name,day:m.day,month:m.month,dept:m.dept},ph,logo);
+      var img=new Image();img.alt="Happy birthday, "+m.name;img.draggable=false;img.src=cv.toDataURL("image/jpeg",0.86);tr.appendChild(img);
+      img.onload=function(){loaded++;post(n)};}
+    window.addEventListener("resize",function(){post(n)});
+    if(n<2){var c2=tr.firstChild.cloneNode(true);tr.appendChild(c2);var t1=null;
+      function one(){tr.style.transition="";tr.style.transform="translateX(-100%)";setTimeout(function(){tr.style.transition="none";tr.style.transform="translateX(0)";void tr.offsetWidth;tr.style.transition=""},650)}
+      function st1(){clearInterval(t1);t1=setInterval(one,6000)}
+      document.addEventListener("visibilitychange",function(){if(document.hidden)clearInterval(t1);else st1()});
+      st1();post(n);return}
+    var cnt=document.createElement("div");cnt.className="cnt";var dots=document.createElement("div");dots.className="dots";w.appendChild(dots);w.appendChild(cnt);
+    var cur=0,timer=null,rm=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+    for(var k=0;k<n;k++){(function(k){var b=document.createElement("span");dots.appendChild(b)})(k)}
+    function go(k){cur=(k+n)%n;tr.style.transform="translateX("+(-100*cur)+"%)";[].forEach.call(dots.children,function(b,i){b.classList.toggle("on",i===cur)});cnt.textContent=(cur+1)+" of "+n+" celebrating today"}
+    function restart(){clearInterval(timer);timer=setInterval(function(){go(cur+1)},4000)}
+    document.addEventListener("visibilitychange",function(){if(document.hidden)clearInterval(timer);else restart()});
+    go(0);restart();post(n);
+  }).catch(function(){post(0)});
+})();
+</script></body></html>

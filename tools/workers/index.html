@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="logo.jpg">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workers' Check-in · Rivers of Living Water Parish</title>
+<meta name="description" content="Workers' attendance check-in for RCCG Rivers of Living Water Parish.">
+<meta name="robots" content="noindex">
+<meta property="og:title" content="RLW Workers' Attendance">
+<meta property="og:description" content="Workers, scan to check in when you arrive.">
+<meta property="og:image" content="https://rlw-workers.sites.tab.bot/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#06070a">
+<link rel="stylesheet" href="app.css?v=u1">
+</head>
+<body>
+<main class="wrap">
+<header class="brand">
+<img src="logo.jpg" width="244" height="320" alt="RCCG Rivers of Living Water Parish logo">
+<h1>Workers' Check-in</h1>
+<div class="accent" aria-hidden="true"></div>
+</header>
+<p class="clock" id="clock" aria-live="polite">Loading...</p>
+
+<div id="closed" class="notice warn hidden" role="status"></div>
+
+<section id="pickView" class="card hidden" aria-labelledby="pickTitle">
+<h2 id="pickTitle" style="margin-top:0">Find your name</h2>
+<p class="small" style="margin-top:-4px">Pick your name once. This phone will remember you next time.</p>
+<label for="q" class="hidden">Search your name</label>
+<input type="search" id="q" placeholder="Type your name" autocomplete="off" aria-controls="list">
+<div class="pick" id="list" role="list"></div>
+<p class="small" id="noName" style="margin-top:10px">Name not on the list? Please see the workers' coordinator.</p>
+<p class="err" id="pickErr" aria-live="polite"></p>
+<button class="btn block big" type="button" id="pickGo" disabled style="margin-top:12px">Check in</button>
+</section>
+
+<section id="meView" class="card welcome hidden" aria-labelledby="meTitle">
+<p class="small" id="meTitle" style="margin:0">Welcome back,</p>
+<p class="nm" id="meName"></p>
+<p class="err" id="meErr" aria-live="polite"></p>
+<button class="btn block big" type="button" id="meGo">Check in</button>
+<button class="linkbtn" type="button" id="notMe" style="margin-top:8px">Not you?</button>
+</section>
+
+<section id="doneView" class="card done hidden" aria-live="polite" tabindex="-1">
+<div class="tick" id="tick" aria-hidden="true"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+<p class="small" id="doneHead" style="margin:0"></p>
+<p class="nm" id="doneName" style="font-family:Georgia,serif;font-size:1.45rem;font-weight:700;margin:2px 0 6px"></p>
+<p class="time" id="doneTime"></p>
+<p><span class="pill" id="donePill"></span></p>
+<p class="small" id="doneLine"></p>
+<button class="linkbtn" type="button" id="notMe2">Not you?</button>
+</section>
+</main>
+<footer class="foot">Rivers of Living Water Parish<span style="display:block;margin-top:6px;font-size:.85em;opacity:.8">© 2026 Rivers Of Living Water</span></footer>
+<script src="scan.js?v=u1"></script>
+</body>
+</html>
