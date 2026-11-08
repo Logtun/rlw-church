@@ -2,36 +2,16 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/firsttimers",
-      "destination": "https://rlw-church.sites.tab.bot/firsttimers/"
+      "source": "/:t(firsttimers|workers|birthdays|quiz)/",
+      "destination": "https://rlw-church.sites.tab.bot/:t/"
     },
     {
-      "source": "/workers",
-      "destination": "https://rlw-church.sites.tab.bot/workers/"
+      "source": "/:t(firsttimers|workers|birthdays|quiz)",
+      "destination": "https://rlw-church.sites.tab.bot/:t/"
     },
     {
-      "source": "/birthdays",
-      "destination": "https://rlw-church.sites.tab.bot/birthdays/"
-    },
-    {
-      "source": "/quiz",
-      "destination": "https://rlw-church.sites.tab.bot/quiz/"
-    },
-    {
-      "source": "/firsttimers/:path*",
-      "destination": "https://rlw-church.sites.tab.bot/firsttimers/:path*"
-    },
-    {
-      "source": "/workers/:path*",
-      "destination": "https://rlw-church.sites.tab.bot/workers/:path*"
-    },
-    {
-      "source": "/birthdays/:path*",
-      "destination": "https://rlw-church.sites.tab.bot/birthdays/:path*"
-    },
-    {
-      "source": "/quiz/:path*",
-      "destination": "https://rlw-church.sites.tab.bot/quiz/:path*"
+      "source": "/:t(firsttimers|workers|birthdays|quiz)/:path(.*)",
+      "destination": "https://rlw-church.sites.tab.bot/:t/:path"
     }
   ]
 }
