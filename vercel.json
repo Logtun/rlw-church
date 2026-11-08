@@ -1,5 +1,12 @@
 {
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/:t(firsttimers|workers|birthdays|quiz|youth)",
+      "destination": "/:t/",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/:t(firsttimers|workers|birthdays|quiz|youth)/",
