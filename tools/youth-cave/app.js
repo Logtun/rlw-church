@@ -237,10 +237,22 @@ function head(title, sub, btn) {
 function addBtn(sec, label) { return '<button class="btn grn sm" type="button" data-add="' + sec + '">' + label + "</button>"; }
 function editBtns(sec, id) { return isExco() ? '<div class="acts"><button class="btn ghost sm" type="button" data-edit="' + sec + '" data-id="' + id + '">Edit</button><button class="btn danger sm" type="button" data-del="' + sec + '" data-id="' + id + '">Delete</button></div>' : ""; }
 var R = {};
+function kickHeroVideo() {
+  var v = document.querySelector(".hero-bg"); if (!v) return;
+  v.muted = true; v.defaultMuted = true; v.playsInline = true; v.loop = true;
+  v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.setAttribute("webkit-playsinline", ""); v.removeAttribute("controls");
+  try { var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+}
+document.addEventListener("touchstart", kickHeroVideo, { passive: true });
+document.addEventListener("click", kickHeroVideo);
+document.addEventListener("visibilitychange", function () { if (!document.hidden) kickHeroVideo(); });
+window.addEventListener("pageshow", kickHeroVideo);
+
 function render() {
   var m = $("main");
   m.innerHTML = (R[cur] || R.home)();
   hydrateFiles(m);
+  kickHeroVideo();
   if (cur === "contrib") loadContrib();
   if (cur === "expenses") loadExpenses();
   if (cur === "suggest" && isExco()) loadSuggestions();
