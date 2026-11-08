@@ -60,7 +60,7 @@ $("logout").addEventListener("click", function () { api("api/logout", {}).catch(
 // ---------- boot ----------
 var TABS = [
   ["home", "Home"], ["notices", "Announcements"], ["events", "Events"], ["roster", "Duty roster"], ["minutes", "Minutes"],
-  ["offering", "Offering"], ["contrib", "Contributions"], ["exco", "Exco"], ["suggest", "Suggestion box"], ["settings", "Settings"]
+  ["offering", "Offering"], ["contrib", "Contributions"], ["exco", "Exco"], ["jobs", "Jobs"], ["suggest", "Suggestion box"], ["settings", "Settings"]
 ];
 function visibleTabs() { return TABS.filter(function (t) { if ((t[0] === "offering" || t[0] === "contrib") && !canMoney()) return false; if (t[0] === "settings" && !isExco()) return false; return true; }); }
 function drawTabs() {
@@ -240,6 +240,7 @@ function render() {
   if (cur === "contrib") loadContrib();
   if (cur === "suggest" && isExco()) loadSuggestions();
   if (cur === "settings") loadSettings();
+  if (cur === "jobs") { if (JB.loaded) drawJobs(); loadJobs(); }
 }
 $("main").addEventListener("click", function (e) {
   var b;
@@ -532,6 +533,103 @@ document.addEventListener("submit", function (e) {
     });
   }
 });
+
+// ---------- jobs & opportunities ----------
+var JB = { rows: [], updated: 0, loaded: false }, jbCat = "all", jbQ = "";
+var JCATS = [["all", "All"], ["jobs", "Jobs & Internships"], ["tech", "Tech"], ["remote", "Remote"], ["scholarships", "Scholarships"]];
+var JLAB = { jobs: "Jobs & Internships", tech: "Tech", remote: "Remote", scholarships: "Scholarships" };
+R.jobs = function () {
+  var h = head("Jobs &amp; Opportunities", "Entry-level jobs, internships and graduate trainee roles in Lagos and Ogun, remote jobs open to Nigerians, tech roles and scholarships. Updated every morning.", '<button class="btn grn sm" type="button" data-jbadd="1">Add listing</button>');
+  h += '<p class="jupd" id="jbUpd">' + (JB.loaded ? jbUpdText() : "Loading...") + "</p>";
+  h += '<div class="chips" role="group" aria-label="Filter listings">' + JCATS.map(function (c) { return '<button type="button" class="chip" data-jbc="' + c[0] + '" aria-pressed="' + (jbCat === c[0]) + '">' + c[1] + "</button>"; }).join("") + "</div>";
+  h += '<label class="sr" for="jbQ">Search listings</label><input id="jbQ" class="jsearch" type="search" placeholder="Search title, company or place" value="' + esc(jbQ) + '" autocomplete="off">';
+  h += '<div id="jbList">' + (JB.loaded ? "" : '<p class="muted">Loading...</p>') + "</div>";
+  h += '<p class="jnote">Always confirm details on the official site. Never pay anyone to get a job or scholarship.</p>';
+  return h;
+};
+function jbUpdText() {
+  if (!JB.updated) return "Not updated yet.";
+  var d = new Date(JB.updated);
+  return "Updated " + d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lagos" }) + " at " + d.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Africa/Lagos" }).toUpperCase();
+}
+function loadJobs() {
+  api("api/jobs").then(function (r) {
+    if (!r.ok) { if ($("jbList")) $("jbList").innerHTML = '<p class="err">' + esc(r.error) + "</p>"; return; }
+    JB = { rows: r.rows || [], updated: r.updated || 0, loaded: true };
+    if (cur !== "jobs") return;
+    if ($("jbUpd")) $("jbUpd").textContent = jbUpdText();
+    drawJobs();
+  }).catch(function () {});
+}
+function jbMatch(j) {
+  if (jbCat !== "all" && j.category !== jbCat && ("," + (j.tags || "") + ",").indexOf("," + jbCat + ",") < 0) return false;
+  if (!jbQ) return true;
+  var hay = (j.title + " " + (j.org || "") + " " + (j.location || "") + " " + (j.source || "") + " " + (j.summary || "")).toLowerCase();
+  return jbQ.toLowerCase().split(/\s+/).every(function (w) { return !w || hay.indexOf(w) >= 0; });
+}
+function jobCard(j) {
+  var safe = /^https?:\/\//i.test(j.url) ? j.url : "#";
+  var tags = '<span class="tag' + (j.category === "scholarships" ? " g" : "") + '">' + esc(JLAB[j.category] || "Jobs") + "</span>";
+  (j.tags || "").split(",").forEach(function (t) { if (JLAB[t]) tags += ' <span class="tag">' + esc(JLAB[t]) + "</span>"; });
+  var bits = [];
+  if (j.deadline) bits.push("<b>Deadline:</b> " + fdate(j.deadline));
+  bits.push("Found " + fdate(j.found));
+  if (j.source) bits.push(esc(j.source));
+  return '<article class="card job' + (j.hidden ? " hid" : "") + '">' + (j.hidden ? '<span class="tag r">Hidden from members</span>' : "") +
+    "<h4>" + esc(j.title) + "</h4>" + (j.org ? '<div class="jorg">' + esc(j.org) + "</div>" : "") +
+    '<div class="meta">' + esc(j.location || (j.category === "remote" ? "Remote" : "Nigeria")) + "</div>" +
+    '<div class="jtags">' + tags + "</div>" + (j.summary ? '<p class="jsum">' + esc(j.summary) + "</p>" : "") +
+    '<div class="meta">' + bits.join(" &middot; ") + "</div>" +
+    '<div class="acts"><a class="btn pri sm" href="' + esc(safe) + '" target="_blank" rel="noopener noreferrer">Apply / Details</a>' +
+    (isExco() ? '<button class="btn ghost sm" type="button" data-jbe="' + j.id + '">Edit</button><button class="btn ghost sm" type="button" data-jbh="' + j.id + '">' + (j.hidden ? "Show" : "Hide") + '</button><button class="btn danger sm" type="button" data-jbd="' + j.id + '">Delete</button>' : "") +
+    "</div></article>";
+}
+function drawJobs() {
+  var el = $("jbList"); if (!el) return;
+  var list = JB.rows.filter(jbMatch);
+  el.innerHTML = '<p class="muted jcount">' + list.length + " listing" + (list.length === 1 ? "" : "s") + "</p>" +
+    (list.length ? list.map(jobCard).join("") : '<p class="empty">' + (JB.rows.length ? "Nothing matches. Try another filter or search." : "No listings yet. New ones are added every morning.") + "</p>");
+}
+function editJob(j) {
+  j = j || {};
+  var opts = JCATS.slice(1).map(function (c) { return '<option value="' + c[0] + '"' + ((j.category || "jobs") === c[0] ? " selected" : "") + ">" + c[1] + "</option>"; }).join("");
+  var html = '<label for="jf_title">Title</label><input id="jf_title" maxlength="200" required value="' + esc(j.title || "") + '">' +
+    '<label for="jf_org">Organisation</label><input id="jf_org" maxlength="160" value="' + esc(j.org || "") + '">' +
+    '<label for="jf_location">Location</label><input id="jf_location" maxlength="120" placeholder="Lagos, Ogun or Remote" value="' + esc(j.location || "") + '">' +
+    '<label for="jf_category">Category</label><select id="jf_category">' + opts + "</select>" +
+    '<label for="jf_deadline">Deadline (if known)</label><input id="jf_deadline" type="date" value="' + esc(j.deadline || "") + '">' +
+    '<label for="jf_url">Link to apply or read more</label><input id="jf_url" type="url" inputmode="url" maxlength="600" placeholder="https://" required value="' + esc(j.url || "") + '">' +
+    '<label for="jf_summary">Short note (optional)</label><textarea id="jf_summary" maxlength="600">' + esc(j.summary || "") + "</textarea>" +
+    '<p class="err" id="merr" role="alert"></p><div class="mf-actions"><button type="submit" class="btn pri" id="msave">' + (j.id ? "Save changes" : "Add") + "</button></div>";
+  openModal(j.id ? "Edit listing" : "Add a listing", html, function () {
+    var body = { title: $("jf_title").value, org: $("jf_org").value, location: $("jf_location").value, category: $("jf_category").value, deadline: $("jf_deadline").value, url: $("jf_url").value.trim(), summary: $("jf_summary").value };
+    if (j.id) body.id = j.id;
+    $("msave").disabled = true;
+    api("api/jobs/save", body).then(function (r) {
+      $("msave").disabled = false;
+      if (!r.ok) { $("merr").textContent = r.error; return; }
+      closeModal(); toast(j.id ? "Saved" : "Added"); loadJobs();
+    }).catch(function () { $("msave").disabled = false; });
+  });
+}
+$("main").addEventListener("click", function (e) {
+  var b;
+  if ((b = e.target.closest("[data-jbc]"))) { jbCat = b.getAttribute("data-jbc"); document.querySelectorAll("[data-jbc]").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); drawJobs(); return; }
+  if ((b = e.target.closest("[data-jbadd]"))) { if (isExco()) editJob(null); return; }
+  if ((b = e.target.closest("[data-jbe]"))) { editJob(find(JB.rows, +b.getAttribute("data-jbe"))); return; }
+  if ((b = e.target.closest("[data-jbh]"))) {
+    var j = find(JB.rows, +b.getAttribute("data-jbh")); if (!j) return;
+    api("api/jobs/hide", { id: j.id, hidden: !j.hidden }).then(function (r) { if (!r.ok) { toast(r.error); return; } toast(j.hidden ? "Shown to members" : "Hidden from members"); loadJobs(); }).catch(function () {});
+    return;
+  }
+  if ((b = e.target.closest("[data-jbd]"))) {
+    var jd = find(JB.rows, +b.getAttribute("data-jbd")); if (!jd) return;
+    if (!confirm("Delete this listing? It will not be added again by the daily update.")) return;
+    api("api/jobs/delete", { id: jd.id }).then(function (r) { if (!r.ok) { toast(r.error); return; } toast("Deleted"); loadJobs(); }).catch(function () {});
+    return;
+  }
+});
+$("main").addEventListener("input", function (e) { if (e.target.id === "jbQ") { jbQ = e.target.value.trim(); drawJobs(); } });
 
 // ---------- go ----------
 if (token) start(); else $("login").hidden = false;

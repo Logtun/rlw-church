@@ -266,9 +266,118 @@ async function cleanup(env, minAgeMs) {
   return { removed };
 }
 
+// ---------- jobs & opportunities ----------
+// Filled daily by the updater script through POST /api/jobs/import (header x-import-key).
+const IMPORT_HASH = "REPLACE_WITH_IMPORT_KEY_HASH"; // sha256(SALT + "import:" + key); the plain key lives only on the updater's machine
+const JOB_CATS = ["jobs", "tech", "remote", "scholarships"];
+const JOB_MAX = 120, JOB_AGE_DAYS = 21;
+let jobsReady = false;
+async function initJobs(env) {
+  if (jobsReady) return;
+  await env.DB.batch([
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY AUTOINCREMENT, url TEXT NOT NULL UNIQUE, title TEXT NOT NULL, org TEXT, location TEXT, category TEXT NOT NULL, tags TEXT, deadline TEXT, found TEXT NOT NULL, source TEXT, summary TEXT, hidden INTEGER NOT NULL DEFAULT 0, manual INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER)`),
+    env.DB.prepare(`CREATE INDEX IF NOT EXISTS jobs_found ON jobs(found)`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS jobs_blocked (url TEXT PRIMARY KEY, ts INTEGER NOT NULL)`),
+  ]);
+  jobsReady = true;
+}
+const isUrl = s => /^https?:\/\/[^\s"'<>]{4,}$/i.test(s || "");
+function cleanJob(it, manual) {
+  const url = clip1(it.url, 600);
+  if (!isUrl(url)) return { err: "Add a full link that starts with https://" };
+  const title = clip1(it.title, 200);
+  if (title.length < 3) return { err: "Please fill in the title." };
+  const category = JOB_CATS.includes(it.category) ? it.category : "jobs";
+  const tags = String(it.tags || "").split(",").map(t => t.trim().toLowerCase()).filter(t => JOB_CATS.includes(t) && t !== category).slice(0, 3).join(",");
+  let deadline = String(it.deadline || "").trim(); if (deadline && !isDate(deadline)) deadline = "";
+  let found = String(it.found || "").trim(); if (!isDate(found)) found = lagosDate(Date.now());
+  return { val: { url, title, org: clip1(it.org, 160), location: clip1(it.location, 120), category, tags, deadline, found, source: clip1(it.source, 60) || (manual ? "Added by Exco" : ""), summary: clipN(it.summary, 600) } };
+}
+async function pruneJobs(env) {
+  const today = lagosDate(Date.now());
+  const cutoff = lagosDate(Date.now() - JOB_AGE_DAYS * DAY);
+  const a = await env.DB.prepare("DELETE FROM jobs WHERE (manual = 0 AND found < ?) OR (deadline != '' AND deadline < ?)").bind(cutoff, today).run();
+  const b = await env.DB.prepare(`DELETE FROM jobs WHERE manual = 0 AND id NOT IN (SELECT id FROM jobs ORDER BY manual DESC, found DESC, id DESC LIMIT ${JOB_MAX})`).run();
+  await env.DB.prepare("DELETE FROM jobs_blocked WHERE ts < ?").bind(Date.now() - 60 * DAY).run();
+  return ((a.meta && a.meta.changes) || 0) + ((b.meta && b.meta.changes) || 0);
+}
+async function importJobs(req, env) {
+  const key = (req.headers.get("x-import-key") || "").trim();
+  if (key.length < 32 || !eq(await sha(SALT + "import:" + key), IMPORT_HASH)) return J({ ok: false, error: "not allowed" }, 403);
+  await initJobs(env);
+  let d; try { d = await req.json(); } catch (e) { return J({ ok: false, error: "send JSON" }, 400); }
+  const items = Array.isArray(d.items) ? d.items.slice(0, 25) : []; // the updater sends small chunks
+  const now = Date.now(); let skipped = 0;
+  const vals = [];
+  for (const it of items) { const c = cleanJob(it, false); if (c.err) skipped++; else if (!vals.some(v => v.url === c.val.url)) vals.push(c.val); }
+  let added = 0, updated = 0, blocked = 0;
+  if (vals.length) {
+    const qs = vals.map(() => "?").join(",");
+    const urls = vals.map(v => v.url);
+    const bl = new Set((await env.DB.prepare(`SELECT url FROM jobs_blocked WHERE url IN (${qs})`).bind(...urls).all()).results.map(r => r.url));
+    const ex = {}; for (const r of (await env.DB.prepare(`SELECT url, manual FROM jobs WHERE url IN (${qs})`).bind(...urls).all()).results) ex[r.url] = r.manual;
+    const st = [];
+    for (const v of vals) {
+      if (bl.has(v.url)) { blocked++; continue; }
+      if (v.url in ex) { if (ex[v.url]) { skipped++; continue; } updated++; } else added++;
+      st.push(env.DB.prepare("INSERT INTO jobs (url, title, org, location, category, tags, deadline, found, source, summary, hidden, manual, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,0,0,?) ON CONFLICT(url) DO UPDATE SET title = excluded.title, org = excluded.org, location = excluded.location, category = excluded.category, tags = excluded.tags, deadline = excluded.deadline, source = excluded.source, summary = excluded.summary, updated_at = excluded.created_at WHERE jobs.manual = 0")
+        .bind(v.url, v.title, v.org, v.location, v.category, v.tags, v.deadline, v.found, v.source, v.summary, now));
+    }
+    if (st.length) await env.DB.batch(st);
+  }
+  const out = { ok: true, added, updated, skipped, blocked };
+  if (d.final) {
+    out.removed = await pruneJobs(env);
+    await setSetting(env, "jobs_updated", String(now));
+    if (d.sources && typeof d.sources === "object") await setSetting(env, "jobs_sources", JSON.stringify(d.sources).slice(0, 2000));
+    const r = await env.DB.prepare("SELECT category, COUNT(*) AS n FROM jobs WHERE hidden = 0 GROUP BY category").all();
+    out.counts = {}; for (const x of r.results) out.counts[x.category] = x.n;
+  }
+  return J(out);
+}
+async function listJobs(env, exco) {
+  await initJobs(env);
+  if (Math.random() < 0.2) await pruneJobs(env);
+  const { results } = await env.DB.prepare(`SELECT id, url, title, org, location, category, tags, deadline, found, source, summary, hidden, manual FROM jobs ${exco ? "" : "WHERE hidden = 0"} ORDER BY found DESC, id ASC LIMIT 200`).all();
+  return J({ ok: true, rows: results, updated: +(await setting(env, "jobs_updated", "0")) || 0, today: lagosDate(Date.now()) });
+}
+async function jobsExco(env, op, body) {
+  await initJobs(env);
+  const id = parseInt(body.id, 10) || 0;
+  if (op === "hide") { await env.DB.prepare("UPDATE jobs SET hidden = ?, updated_at = ? WHERE id = ?").bind(body.hidden ? 1 : 0, Date.now(), id).run(); return J({ ok: true }); }
+  if (op === "delete") {
+    const old = await env.DB.prepare("SELECT url, manual FROM jobs WHERE id = ?").bind(id).first();
+    if (!old) return J({ ok: true, gone: true });
+    const b = [env.DB.prepare("DELETE FROM jobs WHERE id = ?").bind(id)];
+    if (!old.manual) b.push(env.DB.prepare("INSERT INTO jobs_blocked (url, ts) VALUES (?, ?) ON CONFLICT(url) DO UPDATE SET ts = excluded.ts").bind(old.url, Date.now()));
+    await env.DB.batch(b);
+    return J({ ok: true });
+  }
+  if (op === "save") {
+    const c = cleanJob(Object.assign({}, body, { found: "" }), true);
+    if (c.err) return J({ ok: false, error: c.err }, 400);
+    const v = c.val, now = Date.now();
+    if (id) {
+      const old = await env.DB.prepare("SELECT id FROM jobs WHERE id = ?").bind(id).first();
+      if (!old) return J({ ok: false, error: "That listing no longer exists. Refresh the page." }, 404);
+      const dupe = await env.DB.prepare("SELECT id FROM jobs WHERE url = ? AND id != ?").bind(v.url, id).first();
+      if (dupe) return J({ ok: false, error: "Another listing already uses that link." }, 400);
+      await env.DB.prepare("UPDATE jobs SET url = ?, title = ?, org = ?, location = ?, category = ?, deadline = ?, summary = ?, manual = 1, updated_at = ? WHERE id = ?").bind(v.url, v.title, v.org, v.location, v.category, v.deadline, v.summary, now, id).run();
+      return J({ ok: true, id });
+    }
+    const dupe = await env.DB.prepare("SELECT id FROM jobs WHERE url = ?").bind(v.url).first();
+    if (dupe) return J({ ok: false, error: "That link is already listed." }, 400);
+    await env.DB.prepare("DELETE FROM jobs_blocked WHERE url = ?").bind(v.url).run();
+    const r = await env.DB.prepare("INSERT INTO jobs (url, title, org, location, category, tags, deadline, found, source, summary, hidden, manual, created_at) VALUES (?,?,?,?,?,'',?,?,?,?,0,1,?)").bind(v.url, v.title, v.org, v.location, v.category, v.deadline, v.found, "Added by Exco", v.summary, now).run();
+    return J({ ok: true, id: r.meta.last_row_id });
+  }
+  return J({ ok: false, error: "not found" }, 404);
+}
+
 // ---------- routes ----------
 async function api(req, env, path, u) {
   if (path === "/api/login" && req.method === "POST") return login(req, env);
+  if (path === "/api/jobs/import" && req.method === "POST") return importJobs(req, env);
   const ses = await session(req, env);
   if (!ses) return J({ ok: false, error: "Please sign in again.", auth: true }, 401);
   const exco = ses.role === "exco";
@@ -319,8 +428,11 @@ async function api(req, env, path, u) {
     return J({ ok: true });
   }
 
+  if (path === "/api/jobs" && req.method === "GET") return listJobs(env, exco);
   // everything below is Exco only
   if (!exco) return J({ ok: false, error: "Only Exco can make changes." }, 403);
+  const jm = path.match(/^\/api\/jobs\/(save|hide|delete)$/);
+  if (jm && req.method === "POST") return jobsExco(env, jm[1], body);
   if (path === "/api/upload" && req.method === "POST") return upload(req, env);
   const sm = path.match(/^\/api\/(save|delete)\/([a-z]+)$/);
   if (sm && req.method === "POST") {
