@@ -59,7 +59,7 @@ $("logout").addEventListener("click", function () { api("api/logout", {}).catch(
 
 // ---------- boot ----------
 var TABS = [
-  ["home", "Home"], ["notices", "Announcements"], ["polls", "Polls"], ["events", "Events"], ["roster", "Duty roster"], ["minutes", "Minutes"],
+  ["home", "Home"], ["notices", "Announcements"], ["polls", "Polls"], ["plans", "Plans"], ["events", "Events"], ["roster", "Duty roster"], ["minutes", "Minutes"],
   ["offering", "Offering"], ["contrib", "Contributions"], ["expenses", "Expenses"], ["exco", "Exco"], ["jobs", "Jobs"], ["suggest", "Suggestion box"], ["settings", "Settings"]
 ];
 function visibleTabs() { return TABS.filter(function (t) { if ((t[0] === "offering" || t[0] === "contrib" || t[0] === "expenses") && !canMoney()) return false; if (t[0] === "settings" && !isExco()) return false; return true; }); }
@@ -261,6 +261,7 @@ function render() {
   if (cur === "settings") loadSettings();
   if (cur === "jobs") { if (JB.loaded) drawJobs(); loadJobs(); }
   if (cur === "polls") { if (PL.loaded) drawPolls(); loadPolls(); }
+  if (cur === "plans") { if (PN.loaded) drawPlans(); loadPlans(); }
 }
 $("main").addEventListener("click", function (e) {
   var b;
@@ -472,6 +473,163 @@ function pollHomeCard() {
     '<span class="pl-go">' + (p.voted ? "See results" : "Vote now") + "</span></button>";
 }
 
+// ---------- plans (Youth department plans and programmes; Exco adds and edits, youth view) ----------
+var PN = { rows: [], loaded: false, f: "all", open: 0, busy: false };
+var PN_ST = ["Not started", "In progress", "Done", "Paused"];
+function pnDate(s) { if (!s) return ""; return pdate(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }); }
+function pnFrame(p) {
+  if (p.start_date && p.target_date) return pnDate(p.start_date) + " to " + pnDate(p.target_date);
+  if (p.target_date) return "By " + pnDate(p.target_date);
+  if (p.start_date) return "From " + pnDate(p.start_date);
+  return "No dates set";
+}
+function pnOver(p) { return !!(p.target_date && p.status !== "Done" && ME.today && p.target_date < ME.today); }
+function pnPill(p) { var c = { "Not started": "ns", "In progress": "ip", "Done": "dn", "Paused": "pa" }[p.status] || "ns"; return '<span class="pn-pill ' + c + '">' + esc(p.status) + "</span>"; }
+function pnBar(p) { var v = Math.max(0, Math.min(100, +p.progress || 0)); return '<div class="pn-prog"><div class="pn-tr" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + v + '" aria-label="Progress"><span style="width:' + v + '%"></span></div><b>' + v + "%</b></div>"; }
+function pnStepsLine(p) { var d = p.steps.filter(function (s) { return s.d; }).length; return p.steps.length ? d + " of " + p.steps.length + " steps done" : "No steps added yet"; }
+function loadPlans() {
+  return api("api/plans").then(function (r) {
+    if (!r.ok) { if ($("pnList")) $("pnList").innerHTML = '<p class="err">' + esc(r.error) + "</p>"; return; }
+    PN.rows = r.plans || []; PN.loaded = true; if (r.today) ME.today = r.today;
+    var ip = PN.rows.filter(function (p) { return p.status === "In progress"; }).length;
+    D.plans_sum = { total: PN.rows.length, in_progress: ip };
+    if (PN.open && !find(PN.rows, PN.open)) PN.open = 0;
+    if (cur === "plans") drawPlans();
+  }).catch(function () {});
+}
+R.plans = function () {
+  return '<div id="pnList">' + (PN.loaded ? "" : '<p class="muted">Loading...</p>') + "</div>";
+};
+function pnCard(p) {
+  return '<button type="button" class="card pn-card" data-pnopen="' + p.id + '">' +
+    '<span class="pn-top">' + pnPill(p) + (pnOver(p) ? '<span class="pn-over">Overdue</span>' : "") + "</span>" +
+    '<span class="pn-t">' + esc(p.title) + "</span>" +
+    (p.responsible ? '<span class="meta">Responsible: ' + esc(p.responsible) + "</span>" : "") +
+    '<span class="meta">' + pnFrame(p) + "</span>" + pnBar(p) +
+    '<span class="pn-foot"><span>' + pnStepsLine(p) + "</span><span>" + (p.reports.length ? p.reports.length + " report" + (p.reports.length === 1 ? "" : "s") : "No reports yet") + "</span></span></button>";
+}
+function drawPlans() {
+  var el = $("pnList"); if (!el) return;
+  if (PN.open) { var op = find(PN.rows, PN.open); if (op) { el.innerHTML = pnDetail(op); return; } PN.open = 0; }
+  var all = PN.rows, ip = all.filter(function (p) { return p.status === "In progress"; }), dn = all.filter(function (p) { return p.status === "Done"; });
+  var list = PN.f === "ip" ? ip : PN.f === "done" ? dn : all;
+  var h = head("Plans", "The Youth department's plans and programmes: what we will do, by when, and how far we have got.", '<button class="btn grn sm" type="button" id="pnNew">New plan</button>');
+  if (all.length) {
+    h += '<div class="chips pn-f" role="group" aria-label="Filter plans">' + [["all", "All", all.length], ["ip", "In progress", ip.length], ["done", "Done", dn.length]].map(function (c) {
+      return '<button type="button" class="chip" data-pnf="' + c[0] + '" aria-pressed="' + (PN.f === c[0]) + '">' + c[1] + " (" + c[2] + ")</button>";
+    }).join("") + (isExco() ? '<button type="button" class="btn ghost sm pn-csv" id="pnCsv">Download CSV</button>' : "") + "</div>";
+  }
+  if (list.length) h += list.map(pnCard).join("");
+  else if (!all.length) h += '<p class="empty">No plans yet.' + (isExco() ? " Tap New plan to add the first one." : " The Exco will add the department's plans here.") + "</p>";
+  else h += '<p class="empty">No plans ' + (PN.f === "done" ? "are done yet." : "are in progress right now.") + "</p>";
+  el.innerHTML = h;
+}
+function pnDetail(p) {
+  var ex = isExco();
+  var h = '<button type="button" class="lnk pn-back" data-pnback="1">&larr; All plans</button>';
+  h += '<div class="card pn-d"><div class="pn-top">' + pnPill(p) + (pnOver(p) ? '<span class="pn-over">Overdue</span>' : "") + "</div>";
+  h += "<h2>" + esc(p.title) + "</h2>";
+  if (p.responsible) h += '<p class="meta">Responsible: <b>' + esc(p.responsible) + "</b></p>";
+  h += '<p class="meta">Timeframe: <b>' + pnFrame(p) + "</b></p>" + pnBar(p);
+  if (ex) h += '<div class="acts"><button class="btn grn sm" type="button" data-pnrep="' + p.id + '">Add report</button><button class="btn ghost sm" type="button" data-pnedit="' + p.id + '">Edit plan</button><button class="btn danger sm" type="button" data-pndel="' + p.id + '">Delete</button></div>';
+  h += "</div>";
+  h += '<div class="card"><h3 class="pn-h">What to do to achieve it</h3><p class="meta">' + pnStepsLine(p) + "</p>";
+  h += p.steps.length ? '<ul class="pn-steps">' + p.steps.map(function (s, i) {
+    return '<li><label class="pn-step' + (s.d ? " done" : "") + '"><input type="checkbox" data-pnstep="' + p.id + '" data-i="' + i + '"' + (s.d ? " checked" : "") + (ex ? "" : ' disabled aria-disabled="true"') + "><span>" + esc(s.t) + "</span></label></li>";
+  }).join("") + "</ul>" : '<p class="empty">No steps added yet.</p>';
+  h += "</div>";
+  h += '<div class="card"><h3 class="pn-h">Progress / report log</h3>';
+  h += p.reports.length ? '<ol class="pn-log">' + p.reports.map(function (r) {
+    return '<li><div class="pn-ld"><b>' + pnDate(r.date) + "</b>" + (r.reported_by ? '<span class="meta">Reported by ' + esc(r.reported_by) + "</span>" : "") + "</div><p>" + esc(r.body) + "</p>" +
+      (ex ? '<button type="button" class="lnk pn-rdel" data-pnrdel="' + r.id + '">Delete report</button>' : "") + "</li>";
+  }).join("") + "</ol>" : '<p class="empty">No reports yet.' + (ex ? " Tap Add report after each meeting or milestone." : "") + "</p>";
+  h += "</div>";
+  return h;
+}
+function pnStepRow(s) { s = s || { t: "", d: 0 }; return '<div class="pn-sr"><input type="checkbox" aria-label="Done"' + (s.d ? " checked" : "") + '><input type="text" maxlength="200" placeholder="e.g. Book the venue" value="' + esc(s.t) + '"><button type="button" class="btn ghost sm" data-psrm="1">Remove</button></div>'; }
+function planForm(p) {
+  p = p || {}; var steps = p.steps && p.steps.length ? p.steps : [{ t: "", d: 0 }, { t: "", d: 0 }];
+  var html = '<label for="pnt">Plan title</label><input type="text" id="pnt" maxlength="140" required placeholder="e.g. Youth Week 2026" value="' + esc(p.title || "") + '">' +
+    '<label for="pnr">Person/unit responsible (optional)</label><input type="text" id="pnr" maxlength="120" placeholder="e.g. Welfare Director, Media unit" value="' + esc(p.responsible || "") + '">' +
+    '<label>What to do to achieve it</label><p class="hint">One step per line. Tick a step when it is done.</p><div id="pnSteps">' + steps.map(pnStepRow).join("") + "</div>" +
+    '<button type="button" class="btn ghost sm" id="pnAddStep">Add step</button>' +
+    '<div class="pl-dt fsec"><div><label for="pns">Start date</label><input type="date" id="pns" value="' + esc(p.start_date || (p.id ? "" : ME.today)) + '"></div><div><label for="pne">Target date</label><input type="date" id="pne" value="' + esc(p.target_date || "") + '"></div></div>' +
+    '<label for="pnst">Status</label><select id="pnst">' + PN_ST.map(function (s) { return "<option" + ((p.status || "Not started") === s ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select>" +
+    '<label for="pnp">Progress: <b id="pnpv">' + (+p.progress || 0) + '%</b></label><input type="range" id="pnp" class="pn-range" min="0" max="100" step="5" value="' + (+p.progress || 0) + '">' +
+    '<p class="err" id="merr" role="alert"></p><div class="mf-actions"><button type="submit" class="btn pri" id="msave">' + (p.id ? "Save changes" : "Create plan") + "</button></div>";
+  openModal(p.id ? "Edit plan" : "New plan", html, function () {
+    var steps2 = [].map.call(document.querySelectorAll("#pnSteps .pn-sr"), function (r) { var i = r.querySelectorAll("input"); return { t: i[1].value, d: i[0].checked ? 1 : 0 }; }).filter(function (s) { return s.t.trim(); });
+    var body = { title: $("pnt").value, responsible: $("pnr").value, steps: steps2, start_date: $("pns").value, target_date: $("pne").value, status: $("pnst").value, progress: +$("pnp").value };
+    if (p.id) body.id = p.id;
+    $("msave").disabled = true;
+    api("api/plans/save", body).then(function (r) {
+      $("msave").disabled = false;
+      if (!r.ok) { $("merr").textContent = r.error; return; }
+      closeModal(); toast(p.id ? "Plan saved" : "Plan created"); if (!p.id && r.id) PN.open = r.id; loadPlans();
+    }).catch(function () {});
+  });
+  var box = $("pnSteps");
+  $("pnAddStep").addEventListener("click", function () { if (box.children.length >= 30) return; box.insertAdjacentHTML("beforeend", pnStepRow()); var l = box.lastElementChild.querySelector("input[type=text]"); if (l) l.focus(); });
+  box.addEventListener("click", function (e) { var b = e.target.closest("[data-psrm]"); if (b) b.parentNode.remove(); });
+  $("pnp").addEventListener("input", function () { $("pnpv").textContent = this.value + "%"; });
+}
+function reportForm(p) {
+  var html = '<p class="meta" style="margin-top:0">' + esc(p.title) + "</p>" +
+    '<label for="prd">Date</label><input type="date" id="prd" value="' + esc(ME.today) + '">' +
+    '<label for="prb">Report</label><textarea id="prb" rows="4" maxlength="2000" placeholder="e.g. Venue booked. 40 youth registered so far."></textarea>' +
+    '<label for="prw">Reported by (optional)</label><input type="text" id="prw" maxlength="100" placeholder="e.g. Gen. Secretary">' +
+    '<div class="pl-dt fsec"><div><label for="prst">Status</label><select id="prst">' + PN_ST.map(function (s) { return "<option" + (p.status === s ? " selected" : "") + ">" + s + "</option>"; }).join("") + '</select></div><div><label for="prp">Progress: <b id="prpv">' + (+p.progress || 0) + '%</b></label><input type="range" id="prp" class="pn-range" min="0" max="100" step="5" value="' + (+p.progress || 0) + '"></div></div>' +
+    '<p class="err" id="merr" role="alert"></p><div class="mf-actions"><button type="submit" class="btn pri" id="msave">Save report</button></div>';
+  openModal("Add report", html, function () {
+    $("msave").disabled = true;
+    api("api/plans/report", { plan_id: p.id, date: $("prd").value, body: $("prb").value, reported_by: $("prw").value, status: $("prst").value, progress: +$("prp").value }).then(function (r) {
+      $("msave").disabled = false;
+      if (!r.ok) { $("merr").textContent = r.error; return; }
+      closeModal(); toast("Report added"); loadPlans();
+    }).catch(function () {});
+  });
+  $("prp").addEventListener("input", function () { $("prpv").textContent = this.value + "%"; });
+  setTimeout(function () { var f = $("prb"); if (f && window.innerWidth > 700) f.focus(); }, 30);
+}
+$("main").addEventListener("click", function (e) {
+  var b;
+  if ((b = e.target.closest("[data-pnopen]"))) { PN.open = +b.getAttribute("data-pnopen"); drawPlans(); window.scrollTo(0, 0); return; }
+  if ((b = e.target.closest("[data-pnback]"))) { PN.open = 0; drawPlans(); window.scrollTo(0, 0); return; }
+  if ((b = e.target.closest("[data-pnf]"))) { PN.f = b.getAttribute("data-pnf"); return drawPlans(); }
+  if ((b = e.target.closest("#pnNew"))) return planForm();
+  if ((b = e.target.closest("[data-pnedit]"))) return planForm(find(PN.rows, +b.getAttribute("data-pnedit")));
+  if ((b = e.target.closest("[data-pnrep]"))) return reportForm(find(PN.rows, +b.getAttribute("data-pnrep")));
+  if ((b = e.target.closest("#pnCsv"))) {
+    fetch("api/plans.csv", { headers: { authorization: "Bearer " + token } }).then(function (r) { if (!r.ok) throw 0; return r.blob(); }).then(function (bl) {
+      var a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = "rlw-youth-plans-" + ME.today + ".csv"; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    }).catch(function () { toast("Could not download. Please try again."); });
+    return;
+  }
+  if ((b = e.target.closest("[data-pndel]"))) {
+    if (!confirm("Delete this plan and all its reports? This cannot be undone.")) return;
+    b.disabled = true;
+    api("api/plans/delete", { id: +b.getAttribute("data-pndel") }).then(function (r) { if (!r.ok) { b.disabled = false; toast(r.error); return; } PN.open = 0; toast("Plan deleted"); loadPlans(); }).catch(function () {});
+    return;
+  }
+  if ((b = e.target.closest("[data-pnrdel]"))) {
+    if (!confirm("Delete this report?")) return;
+    api("api/plans/report-delete", { id: +b.getAttribute("data-pnrdel") }).then(function (r) { if (!r.ok) { toast(r.error); return; } toast("Report deleted"); loadPlans(); }).catch(function () {});
+    return;
+  }
+});
+$("main").addEventListener("change", function (e) {
+  var x = e.target; if (!x.matches || !x.matches("[data-pnstep]")) return;
+  if (!isExco()) { x.checked = !x.checked; return; }
+  var lab = x.closest(".pn-step"); if (lab) lab.classList.toggle("done", x.checked);
+  api("api/plans/step", { id: +x.getAttribute("data-pnstep"), i: +x.getAttribute("data-i"), done: x.checked }).then(function (r) { if (!r.ok) toast(r.error); loadPlans(); }).catch(function () {});
+});
+function planHomeCard() {
+  var s = D.plans_sum || {}; if (!s.total) return "";
+  return '<button type="button" class="pl-home pn-home" data-go="plans"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 9l1.6 1.6L12.5 7.7M8 15l1.6 1.6 2.9-2.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 9.5H17M14.5 15.5H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
+    '<span class="pl-ht"><small>Youth department</small><b>Youth plans: ' + (s.in_progress || 0) + " in progress</b><small>" + s.total + " plan" + (s.total === 1 ? "" : "s") + " in total</small></span>" +
+    '<span class="pl-go">View plans</span></button>';
+}
+
 // ---------- Remind Me (calendar) ----------
 var BELL = '<svg class="bell" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v3.6l-1.6 2.7A1 1 0 0 0 5.3 17h13.4a1 1 0 0 0 .9-1.7L18 12.6V9a6 6 0 0 0-6-6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9.5 19.5a2.5 2.5 0 0 0 5 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 function lagosUtc(date, time) { var p = date.split("-"), q = time.split(":"); return Date.UTC(+p[0], +p[1] - 1, +p[2], +q[0], +q[1]) - 3600000; } // Lagos is UTC+1
@@ -547,6 +705,7 @@ R.home = function () {
   var h = '<section class="hero hero-vid"><video class="hero-bg" autoplay muted loop playsinline preload="auto" poster="bg/youth_bg_poster.jpg" aria-hidden="true"><source src="bg/youth_bg.mp4" type="video/mp4"></video><div class="hero-ov"></div><div class="hero-in"><p class="eyebrow">Welcome to the</p><h2>Youth Cave</h2><p>' + fdate(ME.today, true) + ".<br>Everything for our youth in one place.</p></div></section>";
   h += '<a class="wa-join" href="https://chat.whatsapp.com/GZ4hiqMFYqNL0cRPoIWazG" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.2-.3-.2-.5-.3z"/></svg><span><b>Join the Youth WhatsApp group</b><small>Chat, updates and reminders with everyone</small></span><span class="wa-go">Join</span></a>';
   h += pollHomeCard();
+  h += planHomeCard();
   h += '<div class="qk"><button type="button" data-go="events">Events<small>' + up.length + " coming up</small></button>" +
     '<button type="button" data-go="roster">Duty roster<small>' + (g.week.length ? "This week is set" : "Not set for this week") + "</small></button>" +
     '<button type="button" data-go="minutes">Minutes<small>' + open + " open action item" + (open === 1 ? "" : "s") + "</small></button>" +

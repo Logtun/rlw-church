@@ -462,6 +462,98 @@ async function pollCsv(env, id) {
   return csvResp(lines, `rlw-youth-poll-${id}-${slug}.csv`);
 }
 
+// ---------- plans (Youth department plans and programmes; Exco adds and edits, youth view) ----------
+let plansReady = false;
+const PLAN_STATUS = ["Not started", "In progress", "Done", "Paused"];
+async function initPlans(env) {
+  if (plansReady) return;
+  await env.DB.batch([
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS plans (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, responsible TEXT, steps TEXT NOT NULL DEFAULT '[]', start_date TEXT, target_date TEXT, status TEXT NOT NULL DEFAULT 'Not started', progress INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER)`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS plan_reports (id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER NOT NULL, date TEXT NOT NULL, body TEXT NOT NULL, reported_by TEXT, created_at INTEGER NOT NULL)`),
+  ]);
+  plansReady = true;
+}
+function planSteps(p) { try { const s = JSON.parse(p.steps || "[]"); return Array.isArray(s) ? s.map(x => ({ t: String((x && x.t) || ""), d: x && x.d ? 1 : 0 })).filter(x => x.t) : []; } catch (e) { return []; } }
+async function plansData(env) {
+  await initPlans(env);
+  const { results: ps } = await env.DB.prepare("SELECT * FROM plans ORDER BY CASE status WHEN 'In progress' THEN 0 WHEN 'Not started' THEN 1 WHEN 'Paused' THEN 2 ELSE 3 END, COALESCE(target_date, '9999-12-31') ASC, id DESC LIMIT 300").all();
+  const { results: rs } = ps.length ? await env.DB.prepare("SELECT id, plan_id, date, body, reported_by, created_at FROM plan_reports ORDER BY date DESC, id DESC").all() : { results: [] };
+  const by = {}; for (const r of rs) (by[r.plan_id] = by[r.plan_id] || []).push(r);
+  return ps.map(p => ({ id: p.id, title: p.title, responsible: p.responsible || "", steps: planSteps(p), start_date: p.start_date || "", target_date: p.target_date || "", status: p.status, progress: p.progress || 0, created_at: p.created_at, updated_at: p.updated_at || p.created_at, reports: by[p.id] || [] }));
+}
+async function savePlan(env, body) {
+  await initPlans(env);
+  const id = parseInt(body.id, 10) || 0, now = Date.now();
+  const title = clip1(body.title, 140);
+  if (title.length < 3) return J({ ok: false, error: "Please type the plan title." }, 400);
+  const responsible = clip1(body.responsible, 120);
+  const raw = Array.isArray(body.steps) ? body.steps : [];
+  const steps = raw.map(s => (typeof s === "string" ? { t: s, d: 0 } : s || {})).map(s => ({ t: clip1(s.t, 200), d: s.d ? 1 : 0 })).filter(s => s.t);
+  if (steps.length > 30) return J({ ok: false, error: "Use 30 steps or fewer." }, 400);
+  const start = String(body.start_date || "").trim(), target = String(body.target_date || "").trim();
+  if (start && !isDate(start)) return J({ ok: false, error: "The start date is not valid." }, 400);
+  if (target && !isDate(target)) return J({ ok: false, error: "The target date is not valid." }, 400);
+  if (start && target && target < start) return J({ ok: false, error: "The target date must be on or after the start date." }, 400);
+  const status = PLAN_STATUS.includes(body.status) ? body.status : "Not started";
+  let progress = parseInt(body.progress, 10); if (!Number.isFinite(progress)) progress = 0; progress = Math.max(0, Math.min(100, progress));
+  if (id) {
+    const ex = await env.DB.prepare("SELECT id FROM plans WHERE id = ?").bind(id).first();
+    if (!ex) return J({ ok: false, error: "This plan no longer exists. Refresh the page." }, 404);
+    await env.DB.prepare("UPDATE plans SET title = ?, responsible = ?, steps = ?, start_date = ?, target_date = ?, status = ?, progress = ?, updated_at = ? WHERE id = ?")
+      .bind(title, responsible || null, JSON.stringify(steps), start || null, target || null, status, progress, now, id).run();
+    return J({ ok: true, id });
+  }
+  const c = await env.DB.prepare("SELECT COUNT(*) AS n FROM plans").first();
+  if ((c && c.n) >= 300) return J({ ok: false, error: "There are already 300 plans. Delete some old ones first." }, 400);
+  const r = await env.DB.prepare("INSERT INTO plans (title, responsible, steps, start_date, target_date, status, progress, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .bind(title, responsible || null, JSON.stringify(steps), start || null, target || null, status, progress, now, now).run();
+  return J({ ok: true, id: r.meta && r.meta.last_row_id });
+}
+async function planAction(env, op, body) {
+  await initPlans(env);
+  const now = Date.now();
+  if (op === "report-delete") { await env.DB.prepare("DELETE FROM plan_reports WHERE id = ?").bind(parseInt(body.id, 10) || 0).run(); return J({ ok: true }); }
+  const id = parseInt(op === "report" ? body.plan_id : body.id, 10) || 0;
+  const p = await env.DB.prepare("SELECT * FROM plans WHERE id = ?").bind(id).first();
+  if (!p) return J({ ok: op === "delete", gone: true, error: "This plan no longer exists. Refresh the page." }, op === "delete" ? 200 : 404);
+  if (op === "delete") {
+    await env.DB.batch([env.DB.prepare("DELETE FROM plan_reports WHERE plan_id = ?").bind(id), env.DB.prepare("DELETE FROM plans WHERE id = ?").bind(id)]);
+    return J({ ok: true });
+  }
+  if (op === "step") {
+    const steps = planSteps(p), i = parseInt(body.i, 10);
+    if (!(i >= 0 && i < steps.length)) return J({ ok: false, error: "That step no longer exists. Refresh the page." }, 400);
+    steps[i].d = body.done ? 1 : 0;
+    await env.DB.prepare("UPDATE plans SET steps = ?, updated_at = ? WHERE id = ?").bind(JSON.stringify(steps), now, id).run();
+    return J({ ok: true });
+  }
+  if (op === "report") {
+    const date = String(body.date || "").trim() || lagosDate(now);
+    if (!isDate(date)) return J({ ok: false, error: "The report date is not valid." }, 400);
+    const text = clipN(body.body, 2000);
+    if (text.length < 2) return J({ ok: false, error: "Please write the report." }, 400);
+    const c = await env.DB.prepare("SELECT COUNT(*) AS n FROM plan_reports WHERE plan_id = ?").bind(id).first();
+    if ((c && c.n) >= 300) return J({ ok: false, error: "This plan already has 300 reports." }, 400);
+    const stmts = [env.DB.prepare("INSERT INTO plan_reports (plan_id, date, body, reported_by, created_at) VALUES (?, ?, ?, ?, ?)").bind(id, date, text, clip1(body.reported_by, 100) || null, now)];
+    let prog = p.progress, st = p.status;
+    if (body.progress != null && body.progress !== "") { const v = parseInt(body.progress, 10); if (Number.isFinite(v)) prog = Math.max(0, Math.min(100, v)); }
+    if (PLAN_STATUS.includes(body.status)) st = body.status;
+    stmts.push(env.DB.prepare("UPDATE plans SET progress = ?, status = ?, updated_at = ? WHERE id = ?").bind(prog, st, now, id));
+    await env.DB.batch(stmts);
+    return J({ ok: true });
+  }
+  return J({ ok: false, error: "not found" }, 404);
+}
+async function plansCsv(env) {
+  const ps = await plansData(env);
+  const lines = [["Plan", "Person/unit responsible", "Start date", "Target date", "Status", "Progress %", "Steps done", "Steps total", "Last report date", "Last report"]];
+  for (const p of ps) {
+    const done = p.steps.filter(s => s.d).length, last = p.reports[0];
+    lines.push([p.title, p.responsible, p.start_date, p.target_date, p.status, p.progress, done, p.steps.length, last ? last.date : "", last ? last.body : ""]);
+  }
+  return csvResp(lines, `rlw-youth-plans-${lagosDate(Date.now())}.csv`);
+}
+
 // ---------- jobs & opportunities ----------
 // Filled daily by the updater script through POST /api/jobs/import (header x-import-key).
 const IMPORT_HASH = "REPLACE_WITH_IMPORT_KEY_HASH"; // sha256(SALT + "import:" + key); the plain key lives only on the updater's machine
@@ -657,6 +749,7 @@ async function api(req, env, path, u) {
     for (const e of out.events) if (e.date && e.time) e.ics_k = await icsKey("event", e.id);
     if (canMoney) out.offerings = await listSection(env, "offerings");
     if (exco) { const r = await env.DB.prepare("SELECT COUNT(*) AS n FROM suggestions WHERE status = 'new'").first(); out.new_suggestions = r ? r.n : 0; }
+    try { await initPlans(env); const r = await env.DB.prepare("SELECT COUNT(*) AS n, SUM(CASE WHEN status = 'In progress' THEN 1 ELSE 0 END) AS ip FROM plans").first(); out.plans_sum = { total: (r && r.n) || 0, in_progress: (r && r.ip) || 0 }; } catch (e) { out.plans_sum = { total: 0, in_progress: 0 }; }
     try { out.polls_open = (await pollsData(env, false, u.searchParams.get("voter"))).filter(p => p.open).map(p => ({ id: p.id, question: p.question, pinned: p.pinned, closes_at: p.closes_at, voted: !!p.mine, total: p.total })); } catch (e) { out.polls_open = []; }
     return J(out);
   }
@@ -704,6 +797,7 @@ async function api(req, env, path, u) {
   if (path === "/api/jobs" && req.method === "GET") return listJobs(env, exco);
   if (path === "/api/polls" && req.method === "GET") return listPolls(env, exco, u);
   if (path === "/api/polls/vote" && req.method === "POST") return votePoll(env, ses, body);
+  if (path === "/api/plans" && req.method === "GET") return J({ ok: true, today: lagosDate(Date.now()), plans: await plansData(env) });
   // everything below is Exco only
   if (!exco) return J({ ok: false, error: "Only Exco can make changes." }, 403);
   const jm = path.match(/^\/api\/jobs\/(save|hide|delete)$/);
@@ -711,6 +805,10 @@ async function api(req, env, path, u) {
   if (path === "/api/polls/save" && req.method === "POST") return savePoll(env, body);
   if (path === "/api/polls/action" && req.method === "POST") return pollAction(env, body);
   if (path === "/api/polls.csv" && req.method === "GET") return pollCsv(env, parseInt(u.searchParams.get("id"), 10) || 0);
+  if (path === "/api/plans/save" && req.method === "POST") return savePlan(env, body);
+  const pm = path.match(/^\/api\/plans\/(delete|step|report|report-delete)$/);
+  if (pm && req.method === "POST") return planAction(env, pm[1], body);
+  if (path === "/api/plans.csv" && req.method === "GET") return plansCsv(env);
   if (path === "/api/upload" && req.method === "POST") return upload(req, env);
   const sm = path.match(/^\/api\/(save|delete)\/([a-z]+)$/);
   if (sm && req.method === "POST") {
