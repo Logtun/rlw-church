@@ -136,7 +136,7 @@ function uploadFile(file) {
 
 // ---------- modal form ----------
 var FORMS = {
-  announcements: { title: "announcement", f: [["title", "Title", "text", 1], ["body", "Message", "long"], ["date", "Date", "date", 1], ["pinned", "Pin this to the top", "bool"]] },
+  announcements: { title: "announcement", f: [["title", "Title", "text", 1], ["body", "Message", "long"], ["date", "Date", "date", 1], ["pinned", "Pin this to the top", "bool"], ["_evh", "Event date and time (optional). Fill these in to show a Remind Me button, so youth can add it to their calendar with alerts 1 hour before, 30 minutes before and at the start.", "hint"], ["ev_date", "Event date", "date"], ["ev_time", "Start time", "time"], ["ev_end", "End time (optional, 1 hour if blank)", "time"], ["ev_loc", "Location or online link (optional)", "text", 0, "Church hall, or a Zoom / Google Meet link"]] },
   events: { title: "event", f: [["title", "Event title", "text", 1], ["date", "Date", "date", 1], ["time", "Time", "time"], ["venue", "Venue", "text"], ["description", "Description", "long"], ["photo", "Flyer (optional)", "image"]] },
   offerings: { title: "offering record", f: [["date", "Date", "date", 1], ["title", "Service or meeting", "text", 1, "Sunday service"], ["amount", "Amount (\u20A6)", "money", 1], ["counted_by", "Counted by", "text", 0, "Names of the counters"], ["notes", "Notes", "long"], ["photo", "Photo or receipt (optional)", "doc"]] },
   minutes: { title: "meeting", f: [["date", "Meeting date", "date", 1], ["title", "Meeting", "text", 0, "Youth Exco meeting"], ["attendees", "Attendees", "long", 0, "Who was there"], ["body", "Minutes", "long", 0, "What was discussed"]] },
@@ -162,6 +162,7 @@ $("mform").addEventListener("submit", function (e) { e.preventDefault(); if (mod
 function fieldHtml(fd, v) {
   var k = fd[0], lab = fd[1], t = fd[2], req = fd[3], ph = fd[4] || "";
   var id = "f_" + k, rq = req ? " required" : "", val = v == null ? "" : v;
+  if (t === "hint") return '<p class="hint fsec">' + esc(lab) + "</p>";
   if (t === "bool") return '<label class="ck"><input type="checkbox" id="' + id + '"' + (val ? " checked" : "") + "> " + esc(lab) + "</label>";
   var h = '<label for="' + id + '">' + esc(lab) + (req ? "" : "") + "</label>";
   if (t === "long") return h + '<textarea id="' + id + '" placeholder="' + esc(ph) + '"' + rq + ">" + esc(val) + "</textarea>";
@@ -199,6 +200,7 @@ function readForm(sec) {
   var o = {};
   FORMS[sec].f.forEach(function (fd) {
     var k = fd[0], t = fd[2], el = $("f_" + k);
+    if (t === "hint") return;
     if (t === "bool") o[k] = el.checked; else if (t === "image" || t === "doc") o[k] = $("f_" + k + "_key").value; else o[k] = el.value;
   });
   return o;
@@ -274,17 +276,58 @@ $("main").addEventListener("click", function (e) {
   if ((b = e.target.closest("[data-edit]"))) { var s2 = b.getAttribute("data-edit"), id = +b.getAttribute("data-id"); return editRow(s2, find(D[s2], id)); }
   if ((b = e.target.closest("[data-del]"))) { return delRow(b.getAttribute("data-del"), +b.getAttribute("data-id")); }
   if ((b = e.target.closest("[data-go]"))) { return go(b.getAttribute("data-go")); }
+  if ((b = e.target.closest("[data-remind]"))) { return openRemind(b.getAttribute("data-remind"), +b.getAttribute("data-id")); }
   if ((b = e.target.closest("[data-done]"))) {
     if (!isExco()) { e.preventDefault(); return; }
     var aid = +b.getAttribute("data-done"); api("api/save/actions", { id: aid, done: b.checked }).then(function (r) { if (!r.ok) toast(r.error); refresh(); }); return;
   }
 });
 
+
+// ---------- Remind Me (calendar) ----------
+var BELL = '<svg class="bell" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v3.6l-1.6 2.7A1 1 0 0 0 5.3 17h13.4a1 1 0 0 0 .9-1.7L18 12.6V9a6 6 0 0 0-6-6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9.5 19.5a2.5 2.5 0 0 0 5 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+function lagosUtc(date, time) { var p = date.split("-"), q = time.split(":"); return Date.UTC(+p[0], +p[1] - 1, +p[2], +q[0], +q[1]) - 3600000; } // Lagos is UTC+1
+function evInfo(kind, x) {
+  if (!x || !x.ics_k) return null;
+  var date = kind === "announcement" ? x.ev_date : x.date, time = kind === "announcement" ? x.ev_time : x.time;
+  if (!date || !time) return null;
+  var start = lagosUtc(date, time), endT = kind === "announcement" && x.ev_end && x.ev_end > time ? x.ev_end : "";
+  var end = endT ? lagosUtc(date, endT) : start + 3600000;
+  return { kind: kind, id: x.id, k: x.ics_k, title: x.title, date: date, time: time, endT: endT, start: start, end: end,
+    loc: (kind === "announcement" ? x.ev_loc : x.venue) || "", note: (kind === "announcement" ? x.body : x.description) || "" };
+}
+function evLine(a) {
+  if (!a.ev_date || !a.ev_time) return "";
+  return '<p class="evl"><b>Event:</b> ' + fdate(a.ev_date, true) + ", " + ftime(a.ev_time) + (a.ev_end && a.ev_end > a.ev_time ? " to " + ftime(a.ev_end) : "") + (a.ev_loc ? " &middot; " + esc(a.ev_loc) : "") + "</p>";
+}
+function remindBtn(kind, x) {
+  var e = evInfo(kind, x); if (!e || e.start <= Date.now()) return "";
+  return '<button class="btn remind sm" type="button" data-remind="' + kind + '" data-id="' + x.id + '">' + BELL + "Remind Me</button>";
+}
+function gdate(ms) { return new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); }
+function openRemind(kind, id) {
+  var x = find(kind === "announcement" ? D.announcements : D.events, id), e = evInfo(kind, x);
+  if (!e) { toast("This event has no date and time yet."); return; }
+  var ics = "api/ics/" + kind + "/" + e.id + ".ics?k=" + encodeURIComponent(e.k);
+  var link = location.href.split("#")[0] + "#" + (kind === "announcement" ? "notices" : "events");
+  var note = String(e.note || "").trim(); if (note.length > 500) note = note.slice(0, 497) + "...";
+  var g = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(e.title) +
+    "&dates=" + gdate(e.start) + "/" + gdate(e.end) + "&ctz=Africa%2FLagos" +
+    "&details=" + encodeURIComponent((note ? note + "\n\n" : "") + "RLW Youth Cave: " + link) +
+    (e.loc ? "&location=" + encodeURIComponent(e.loc) : "");
+  var when = fdate(e.date, true) + ", " + ftime(e.time) + (e.endT ? " to " + ftime(e.endT) : "");
+  var html = '<div class="rm"><p class="rm-t">' + esc(e.title) + '</p><p class="rm-w">' + esc(when) + (e.loc ? "<br>" + esc(e.loc) : "") + "</p>" +
+    '<a class="btn grn wide" id="rm_ics" href="' + esc(ics) + '">Add to my phone calendar (iPhone &amp; Android)</a>' +
+    '<p class="rm-s">Your phone will alert you 1 hour before, 30 minutes before and when it starts. On Android, open the downloaded file and choose your Calendar app.</p>' +
+    '<a class="btn ghost wide" id="rm_g" href="' + esc(g) + '" target="_blank" rel="noopener">Add to Google Calendar</a>' +
+    '<p class="rm-s">Google Calendar uses its own default reminder. For the 1 hour, 30 minute and start alerts, use the phone calendar option above.</p></div>';
+  openModal("Remind me", html, null);
+}
 function announcementCard(a) {
-  return '<article class="card' + (a.pinned ? " pinned" : "") + '"><h4>' + (a.pinned ? '<span class="pin">Pinned</span>' : "") + esc(a.title) + '</h4><div class="meta">' + fdate(a.date) + "</div>" + (a.body ? '<p class="body">' + esc(a.body) + "</p>" : "") + editBtns("announcements", a.id) + "</article>";
+  return '<article class="card' + (a.pinned ? " pinned" : "") + '"><h4>' + (a.pinned ? '<span class="pin">Pinned</span>' : "") + esc(a.title) + '</h4><div class="meta">' + fdate(a.date) + "</div>" + (a.body ? '<p class="body">' + esc(a.body) + "</p>" : "") + evLine(a) + remindBtn("announcement", a) + editBtns("announcements", a.id) + "</article>";
 }
 function eventCard(ev) {
-  return '<article class="card"><h4>' + esc(ev.title) + '</h4><div class="meta">' + fdate(ev.date, true) + (ev.time ? " at " + ftime(ev.time) : "") + (ev.venue ? " &middot; " + esc(ev.venue) : "") + "</div>" + (ev.description ? '<p class="body">' + esc(ev.description) + "</p>" : "") + fileBlock(ev.photo, "Flyer for " + ev.title) + editBtns("events", ev.id) + "</article>";
+  return '<article class="card"><h4>' + esc(ev.title) + '</h4><div class="meta">' + fdate(ev.date, true) + (ev.time ? " at " + ftime(ev.time) : "") + (ev.venue ? " &middot; " + esc(ev.venue) : "") + "</div>" + (ev.description ? '<p class="body">' + esc(ev.description) + "</p>" : "") + fileBlock(ev.photo, "Flyer for " + ev.title) + remindBtn("event", ev) + editBtns("events", ev.id) + "</article>";
 }
 function rosterGroups() {
   var by = {}; (D.roster || []).forEach(function (r) { (by[r.date] = by[r.date] || []).push(r); });

@@ -47,7 +47,7 @@ function clientIp(req) {
 const SECTIONS = {
   offerings: { fields: { date: "date!", title: "text:80!", amount: "money!", counted_by: "text:120", notes: "long:2000", photo: "file" }, order: "date DESC, id DESC", money: true },
   events: { fields: { title: "text:120!", date: "date!", time: "time", venue: "text:160", description: "long:3000", photo: "file" }, order: "date ASC, time ASC, id ASC" },
-  announcements: { fields: { title: "text:140!", body: "long:4000", date: "date!", pinned: "bool" }, order: "pinned DESC, date DESC, id DESC" },
+  announcements: { fields: { title: "text:140!", body: "long:4000", date: "date!", pinned: "bool", ev_date: "date", ev_time: "time", ev_end: "time", ev_loc: "text:300" }, order: "pinned DESC, date DESC, id DESC" },
   minutes: { fields: { date: "date!", title: "text:140", attendees: "long:1500", body: "long:12000" }, order: "date DESC, id DESC" },
   actions: { fields: { minute_id: "int!", what: "text:300!", who: "text:120", due: "date", done: "bool" }, order: "done ASC, due ASC, id ASC" },
   roster: { fields: { date: "date!", duty: "text:60!", person: "text:160" }, order: "date DESC, duty COLLATE NOCASE ASC, id ASC" },
@@ -76,6 +76,15 @@ async function init(env) {
   stmts.push(env.DB.prepare(`CREATE INDEX IF NOT EXISTS actions_m ON actions(minute_id)`));
   stmts.push(env.DB.prepare(`CREATE INDEX IF NOT EXISTS expenses_d ON expenses(date)`));
   await env.DB.batch(stmts);
+  // safe migration: add any column a section gained after its table was first created (never drops or rewrites)
+  for (const [name, s] of Object.entries(SECTIONS)) {
+    const { results: cols } = await env.DB.prepare(`PRAGMA table_info(${name})`).all();
+    const have = new Set((cols || []).map(c => c.name));
+    for (const [k, t] of Object.entries(s.fields)) {
+      if (have.has(k)) continue;
+      try { await env.DB.prepare(`ALTER TABLE ${name} ADD COLUMN ${k} ${SQLT[t.split(":")[0].replace("!", "")]}`).run(); } catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
+    }
+  }
   const seeded = await env.DB.prepare("SELECT v FROM settings WHERE k = 'exco_seeded'").first();
   if (!seeded) {
     const now = Date.now();
@@ -166,6 +175,12 @@ async function saveRow(env, name, body) {
     const r = parseField(t, body[k]);
     if (r.err) return J({ ok: false, error: r.err === "missing" ? "Please fill in the " + (LABELS[k] || k.replace("_", " ")) + "." : r.err }, 400);
     vals[k] = r.val;
+  }
+  if (name === "announcements") {
+    const m = { ...(old || {}), ...vals };
+    if ((m.ev_time || m.ev_end || m.ev_loc) && !m.ev_date) return J({ ok: false, error: "Add the event date too, or clear the event time and location." }, 400);
+    if (m.ev_date && !m.ev_time) return J({ ok: false, error: "Add the event start time too, so the Remind Me button knows when to alert." }, 400);
+    if (m.ev_end && m.ev_time && m.ev_end <= m.ev_time) return J({ ok: false, error: "The end time must be after the start time." }, 400);
   }
   if (name === "actions" && "minute_id" in vals) {
     const m = await env.DB.prepare("SELECT id FROM minutes WHERE id = ?").bind(vals.minute_id).first();
@@ -430,9 +445,74 @@ async function jobsExco(env, op, body) {
 }
 
 // ---------- routes ----------
+// ---------- calendar reminders (.ics) ----------
+// The .ics is opened by the phone's calendar app, which has no session, so each link carries a short signed key
+// (HMAC of kind + id). The file holds only the title, time, place, a short note and three alarms.
+async function icsKey(kind, id) { return (await hmac("ics:" + kind + ":" + id)).slice(0, 32); }
+function icsEsc(s) { return String(s == null ? "" : s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); }
+function icsFold(line) {
+  // RFC 5545: lines longer than 75 octets are folded with CRLF + one space, never splitting a UTF-8 character
+  const out = []; let cur = "", n = 0;
+  for (const ch of line) {
+    const b = enc.encode(ch).length;
+    if (n + b > (out.length ? 74 : 75)) { out.push(cur); cur = ""; n = 0; }
+    cur += ch; n += b;
+  }
+  out.push(cur);
+  return out.join("\r\n ");
+}
+const icsUtc = ms => new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+function lagosMs(date, time) { const [y, m, d] = date.split("-").map(Number); const [h, mi] = time.split(":").map(Number); return Date.UTC(y, m - 1, d, h, mi) - LAGOS; }
+function eventOf(kind, row) {
+  if (kind === "announcement") {
+    if (!row.ev_date || !row.ev_time) return null;
+    const start = lagosMs(row.ev_date, row.ev_time);
+    let end = row.ev_end && row.ev_end > row.ev_time ? lagosMs(row.ev_date, row.ev_end) : start + 3600000;
+    return { title: row.title, start, end, loc: row.ev_loc || "", note: row.body || "" };
+  }
+  if (!row.date || !row.time) return null;
+  const start = lagosMs(row.date, row.time);
+  return { title: row.title, start, end: start + 3600000, loc: row.venue || "", note: row.description || "" };
+}
+async function serveIcs(req, env, kind, id, u) {
+  const k = String(u.searchParams.get("k") || "");
+  if (!eq(k, await icsKey(kind, id))) return new Response("This reminder link is not valid.", { status: 403, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
+  const row = await env.DB.prepare(`SELECT * FROM ${kind === "announcement" ? "announcements" : "events"} WHERE id = ?`).bind(id).first();
+  const ev = row && eventOf(kind, row);
+  if (!ev) return new Response("This event is no longer on the Youth Cave.", { status: 404, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
+  const base = pubBase(req);
+  const link = base + "/#" + (kind === "announcement" ? "notices" : "events");
+  let note = String(ev.note).replace(/\r\n?/g, "\n").trim();
+  if (note.length > 600) note = note.slice(0, 597).trimEnd() + "...";
+  const desc = (note ? note + "\n\n" : "") + "RLW Youth Cave: " + link;
+  const isUrl = /^https?:\/\/\S+$/i.test(ev.loc.trim());
+  const title = clip1(ev.title, 140) || "Youth Cave event";
+  const L = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//RCCG Rivers of Living Water Parish//Youth Cave//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    "UID:" + kind + "-" + id + "@rlw-youth.sites.tab.bot",
+    "DTSTAMP:" + icsUtc(Date.now()),
+    "DTSTART:" + icsUtc(ev.start),
+    "DTEND:" + icsUtc(ev.end),
+    "SUMMARY:" + icsEsc(title),
+    "DESCRIPTION:" + icsEsc(desc),
+  ];
+  if (ev.loc) L.push("LOCATION:" + icsEsc(clip1(ev.loc, 300)));
+  L.push("URL:" + (isUrl ? ev.loc.trim() : link));
+  const alarms = [["-PT1H", "starts in 1 hour"], ["-PT30M", "starts in 30 minutes"], ["PT0M", "is starting now"]];
+  for (const [t, w] of alarms) L.push("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + icsEsc(title + " " + w), "TRIGGER:" + t, "END:VALARM");
+  L.push("END:VEVENT", "END:VCALENDAR");
+  const body = L.map(icsFold).join("\r\n") + "\r\n";
+  const fname = (title.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || "youth-cave-event") + ".ics";
+  const disp = u.searchParams.get("dl") === "1" ? "attachment" : "inline";
+  return new Response(body, { headers: { "content-type": "text/calendar; charset=utf-8", "content-disposition": `${disp}; filename="${fname}"`, "cache-control": "no-store", "x-robots-tag": "noindex" } });
+}
+
 async function api(req, env, path, u) {
   if (path === "/api/login" && req.method === "POST") return login(req, env);
   if (path === "/api/jobs/import" && req.method === "POST") return importJobs(req, env);
+  const im = path.match(/^\/api\/ics\/(announcement|event)\/(\d+)\.ics$/);
+  if (im && (req.method === "GET" || req.method === "HEAD")) return serveIcs(req, env, im[1], parseInt(im[2], 10), u);
   const ses = await session(req, env);
   if (!ses) return J({ ok: false, error: "Please sign in again.", auth: true }, 401);
   const exco = ses.role === "exco";
@@ -447,6 +527,8 @@ async function api(req, env, path, u) {
   if (path === "/api/all" && req.method === "GET") {
     const out = { ok: true, role: ses.role, money, today: lagosDate(Date.now()), base: pubBase(req) };
     for (const n of ["events", "announcements", "minutes", "actions", "roster", "exco"]) out[n] = await listSection(env, n);
+    for (const a of out.announcements) if (a.ev_date && a.ev_time) a.ics_k = await icsKey("announcement", a.id);
+    for (const e of out.events) if (e.date && e.time) e.ics_k = await icsKey("event", e.id);
     if (canMoney) out.offerings = await listSection(env, "offerings");
     if (exco) { const r = await env.DB.prepare("SELECT COUNT(*) AS n FROM suggestions WHERE status = 'new'").first(); out.new_suggestions = r ? r.n : 0; }
     return J(out);

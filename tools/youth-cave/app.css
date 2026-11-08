@@ -230,3 +230,14 @@ input[type=month]{width:100%;padding:10px 12px;border:1px solid #cfd5e6;border-r
 /* no native controls on the welcome video */
 .hero-vid .hero-bg{pointer-events:none}
 .hero-vid video::-webkit-media-controls,.hero-vid video::-webkit-media-controls-start-playback-button,.hero-vid video::-webkit-media-controls-panel,.hero-vid video::-webkit-media-controls-play-button,.hero-vid video::-webkit-media-controls-overlay-play-button,.hero-vid video::-webkit-media-controls-enclosure{display:none!important;-webkit-appearance:none!important;opacity:0!important}
+
+/* Remind Me (calendar alerts) */
+.btn.remind{background:#0A8F4A;color:#fff;gap:7px;margin-top:10px}
+.btn.remind:hover{background:#087a3f}
+.btn.remind .bell{flex:none}
+.evl{font-size:14px;color:var(--navy);background:var(--soft);border-left:3px solid #0A8F4A;border-radius:8px;padding:8px 10px;margin:10px 0 0}
+.hint.fsec{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);color:var(--navy);font-weight:600}
+.rm .rm-t{font-weight:800;font-size:18px;color:var(--navy);margin:2px 0 4px}
+.rm .rm-w{color:var(--muted);margin:0 0 4px;font-size:15px;overflow-wrap:anywhere}
+.rm .btn.wide{text-align:center}
+.rm .rm-s{font-size:12.5px;color:var(--muted);margin:8px 2px 0;line-height:1.4}
