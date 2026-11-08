@@ -59,7 +59,7 @@ $("logout").addEventListener("click", function () { api("api/logout", {}).catch(
 
 // ---------- boot ----------
 var TABS = [
-  ["home", "Home"], ["notices", "Announcements"], ["events", "Events"], ["roster", "Duty roster"], ["minutes", "Minutes"],
+  ["home", "Home"], ["notices", "Announcements"], ["polls", "Polls"], ["events", "Events"], ["roster", "Duty roster"], ["minutes", "Minutes"],
   ["offering", "Offering"], ["contrib", "Contributions"], ["expenses", "Expenses"], ["exco", "Exco"], ["jobs", "Jobs"], ["suggest", "Suggestion box"], ["settings", "Settings"]
 ];
 function visibleTabs() { return TABS.filter(function (t) { if ((t[0] === "offering" || t[0] === "contrib" || t[0] === "expenses") && !canMoney()) return false; if (t[0] === "settings" && !isExco()) return false; return true; }); }
@@ -77,7 +77,7 @@ function go(t) {
   window.scrollTo(0, 0);
 }
 function load() {
-  return api("api/all").then(function (r) {
+  return api("api/all?voter=" + voterId()).then(function (r) {
     if (!r.ok) { $("main").innerHTML = '<p class="err">' + esc(r.error) + "</p>"; return; }
     D = r; ME.role = r.role; ME.money = r.money; ME.today = r.today; ME.base = r.base;
     $("roleLbl").textContent = isExco() ? "Exco" : "Member";
@@ -260,6 +260,7 @@ function render() {
   if (cur === "suggest" && isExco()) loadSuggestions();
   if (cur === "settings") loadSettings();
   if (cur === "jobs") { if (JB.loaded) drawJobs(); loadJobs(); }
+  if (cur === "polls") { if (PL.loaded) drawPolls(); loadPolls(); }
 }
 $("main").addEventListener("click", function (e) {
   var b;
@@ -283,6 +284,193 @@ $("main").addEventListener("click", function (e) {
   }
 });
 
+
+// ---------- polls ----------
+// One vote per device per poll: a random voter id lives in localStorage (no accounts; everyone shares the Youth password).
+var VK = "rlwYouthVoter", VN = "rlwYouthVoterName";
+function voterId() {
+  var v = ""; try { v = localStorage.getItem(VK) || ""; } catch (e) {}
+  if (!/^[a-f0-9]{32}$/.test(v)) {
+    var a = new Uint8Array(16); (window.crypto || window.msCrypto).getRandomValues(a);
+    v = Array.prototype.map.call(a, function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
+    try { localStorage.setItem(VK, v); } catch (e2) {}
+  }
+  return v;
+}
+function voterName() { try { return localStorage.getItem(VN) || ""; } catch (e) { return ""; } }
+var PL = { rows: [], loaded: false, now: 0, change: {}, sel: {}, peek: {}, busy: false };
+function pollWhen(ms) { return new Date(ms).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Africa/Lagos" }).replace(" am", " AM").replace(" pm", " PM"); }
+function loadPolls() {
+  return api("api/polls?voter=" + voterId()).then(function (r) {
+    if (!r.ok) { if ($("plList")) $("plList").innerHTML = '<p class="err">' + esc(r.error) + "</p>"; return; }
+    PL.rows = r.polls || []; PL.now = r.now || Date.now(); PL.loaded = true;
+    if (cur === "polls") drawPolls();
+  }).catch(function () {});
+}
+R.polls = function () {
+  var nm = voterName();
+  var h = head("Polls", "Tap an option to vote. One vote per phone, and you can change it while the poll is open.", '<button class="btn grn sm" type="button" id="plNew">New poll</button>');
+  h += '<p class="meta pl-me" id="plMe">' + (nm ? "Voting as <b>" + esc(nm) + '</b> &middot; <button type="button" class="lnk" id="plName">Change name</button>' : "") + "</p>";
+  h += '<div id="plList">' + (PL.loaded ? "" : '<p class="muted">Loading...</p>') + "</div>";
+  return h;
+};
+function pollBars(p) {
+  if (!p.results) return '<p class="pl-hid">Results show after you vote.</p>';
+  var max = Math.max.apply(null, p.counts.concat([0]));
+  return '<div class="pl-res">' + p.options.map(function (o, i) {
+    var c = p.counts[i], pct = p.total ? Math.round(c * 100 / p.total) : 0, lead = max > 0 && c === max;
+    var mine = p.mine && p.mine.indexOf(i) >= 0;
+    var who = isExco() && p.voters && p.voters[i].length ? '<p class="pl-who">' + p.voters[i].map(esc).join(", ") + "</p>" : "";
+    return '<div class="pl-bar' + (lead ? " lead" : "") + '"><div class="pl-bt"><span class="pl-o">' + esc(o) + (mine ? ' <span class="pl-mine">Your vote</span>' : "") + '</span><span class="pl-n">' + c + " &middot; " + pct + '%</span></div><div class="pl-tr"><span style="width:' + pct + '%"></span></div>' + who + "</div>";
+  }).join("") + "</div>";
+}
+function pollVoteForm(p) {
+  var sel = PL.sel[p.id] || p.mine || [];
+  if (!p.multi) return '<div class="pl-opts">' + p.options.map(function (o, i) {
+    return '<button type="button" class="pl-opt' + (sel.indexOf(i) >= 0 ? " on" : "") + '" data-pvote="' + p.id + '" data-i="' + i + '">' + esc(o) + "</button>";
+  }).join("") + "</div>";
+  return '<div class="pl-opts">' + p.options.map(function (o, i) {
+    return '<label class="pl-ck"><input type="checkbox" data-pck="' + p.id + '" value="' + i + '"' + (sel.indexOf(i) >= 0 ? " checked" : "") + "> " + esc(o) + "</label>";
+  }).join("") + '</div><button type="button" class="btn pri wide" data-psub="' + p.id + '">Submit my vote</button>';
+}
+function pollCard(p) {
+  var voted = !!p.mine, voting = p.open && (!voted || PL.change[p.id]);
+  var st = p.open ? (p.closes_at ? "Closes " + pollWhen(p.closes_at) : "Open") : "Closed";
+  var h = '<article class="card pl' + (p.pinned ? " pinned" : "") + (p.open ? "" : " closed") + '" id="poll-' + p.id + '">';
+  h += (p.pinned ? '<span class="pin">Pinned</span>' : "") + '<h4 class="pl-q">' + esc(p.question) + "</h4>";
+  h += '<p class="meta"><span class="pl-st' + (p.open ? " open" : "") + '">' + st + "</span> &middot; " + p.total + " vote" + (p.total === 1 ? "" : "s") + " &middot; " + (p.multi ? "Choose one or more" : "Choose one") + "</p>";
+  if (voting) {
+    h += pollVoteForm(p) + (voted ? '<button type="button" class="btn ghost sm pl-cx" data-pcancel="' + p.id + '">Keep my vote</button>' : "");
+    if (p.results) h += '<details class="pl-ex"' + (PL.peek[p.id] ? " open" : "") + ' data-ppeek="' + p.id + '"><summary>' + (isExco() ? "Live results" : "See results so far") + "</summary>" + pollBars(p) + "</details>";
+  } else h += pollBars(p);
+  if (!voting && p.open && voted) h += '<div class="acts"><button type="button" class="btn ghost sm" data-pchange="' + p.id + '">Change my vote</button></div>';
+  if (isExco()) {
+    h += '<div class="acts pl-adm">' +
+      (p.open ? '<button type="button" class="btn ghost sm" data-pact="close" data-id="' + p.id + '">Close now</button>' : '<button type="button" class="btn ghost sm" data-pact="reopen" data-id="' + p.id + '">Reopen</button>') +
+      (p.pinned ? '<button type="button" class="btn ghost sm" data-pact="unpin" data-id="' + p.id + '">Unpin</button>' : '<button type="button" class="btn ghost sm" data-pact="pin" data-id="' + p.id + '">Pin</button>') +
+      (p.total ? "" : '<button type="button" class="btn ghost sm" data-pedit="' + p.id + '">Edit</button>') +
+      '<button type="button" class="btn ghost sm" data-pcsv="' + p.id + '">Download CSV</button>' +
+      '<button type="button" class="btn danger sm" data-pact="delete" data-id="' + p.id + '">Delete</button></div>';
+  }
+  return h + "</article>";
+}
+function drawPolls() {
+  var el = $("plList"); if (!el) return;
+  var open = PL.rows.filter(function (p) { return p.open; }), shut = PL.rows.filter(function (p) { return !p.open; });
+  open.sort(function (a, b) { return (b.pinned - a.pinned) || (b.created_at - a.created_at); });
+  shut.sort(function (a, b) { return b.created_at - a.created_at; });
+  var h = open.length ? open.map(pollCard).join("") : '<p class="empty">No open polls right now.' + (isExco() ? " Tap New poll to ask the youth a question." : " Check back soon.") + "</p>";
+  if (shut.length) h += '<details class="past"' + (PL.pastOpen ? " open" : "") + ' id="plPast"><summary>Closed polls (' + shut.length + ")</summary>" + shut.map(pollCard).join("") + "</details>";
+  el.innerHTML = h;
+  var me = $("plMe"), nm = voterName();
+  if (me) me.innerHTML = nm ? "Voting as <b>" + esc(nm) + '</b> &middot; <button type="button" class="lnk" id="plName">Change name</button>' : "";
+}
+function askName(then) {
+  openModal("Your name", '<label for="vn">Your name</label><input type="text" id="vn" maxlength="60" autocomplete="name" value="' + esc(voterName()) + '" placeholder="e.g. Tolu Adebayo" required><p class="hint">The Exco will see your name next to your vote. Other youth only see the totals.</p><p class="err" id="merr" role="alert"></p><div class="mf-actions"><button type="submit" class="btn pri" id="msave">Continue</button></div>', function () {
+    var v = $("vn").value.trim().replace(/\s+/g, " ");
+    if (v.length < 2) { $("merr").textContent = "Please type your name."; return; }
+    try { localStorage.setItem(VN, v); } catch (e) {}
+    closeModal(); if (then) then(); else drawPolls();
+  });
+  setTimeout(function () { var f = $("vn"); if (f) f.focus(); }, 30);
+}
+function castVote(id, choices) {
+  if (!voterName()) return askName(function () { castVote(id, choices); });
+  if (PL.busy) return; PL.busy = true;
+  api("api/polls/vote", { poll_id: id, voter: voterId(), name: voterName(), choices: choices }).then(function (r) {
+    PL.busy = false;
+    if (!r.ok) { toast(r.error || "Could not save your vote."); loadPolls(); return; }
+    delete PL.change[id]; delete PL.sel[id]; toast("Vote saved"); loadPolls(); refreshQuiet();
+  }).catch(function () { PL.busy = false; });
+}
+function pollForm(p) {
+  p = p || {}; var opts = p.options && p.options.length ? p.options.slice() : ["", ""];
+  var cd = "", ct = "";
+  if (p.closes_at) { var d = new Date(p.closes_at + 3600000).toISOString(); cd = d.slice(0, 10); ct = d.slice(11, 16); }
+  var html = '<label for="pq">Question</label><input type="text" id="pq" maxlength="200" required placeholder="e.g. Which Saturday for the youth retreat?" value="' + esc(p.question || "") + '">' +
+    '<label>Options (2 to 8)</label><div id="pOpts">' + opts.map(function (o, i) { return pollOptRow(i, o); }).join("") + "</div>" +
+    '<button type="button" class="btn ghost sm" id="pAdd">Add option</button>' +
+    '<p class="hint fsec">Closing date and time (optional, Lagos time). Leave blank to keep the poll open until you close it.</p>' +
+    '<div class="pl-dt"><div><label for="pcd">Closing date</label><input type="date" id="pcd" value="' + cd + '"></div><div><label for="pct">Closing time</label><input type="time" id="pct" value="' + ct + '"></div></div>' +
+    '<label class="ck"><input type="checkbox" id="pmulti"' + (p.multi ? " checked" : "") + "> Allow more than one choice</label>" +
+    '<label class="ck"><input type="checkbox" id="phide"' + (p.hide_results ? " checked" : "") + "> Show results only after voting</label>" +
+    (p.id ? "" : '<label class="ck"><input type="checkbox" id="ppin"> Pin this poll to the top</label>') +
+    '<p class="err" id="merr" role="alert"></p><div class="mf-actions"><button type="submit" class="btn pri" id="msave">' + (p.id ? "Save changes" : "Create poll") + "</button></div>";
+  openModal(p.id ? "Edit poll" : "New poll", html, function () {
+    var body = { question: $("pq").value, options: [].map.call(document.querySelectorAll("#pOpts input"), function (x) { return x.value; }),
+      closes_date: $("pcd").value, closes_time: $("pct").value, multi: $("pmulti").checked, hide_results: $("phide").checked };
+    if (p.id) body.id = p.id; else body.pinned = $("ppin").checked;
+    $("msave").disabled = true;
+    api("api/polls/save", body).then(function (r) {
+      $("msave").disabled = false;
+      if (!r.ok) { $("merr").textContent = r.error; return; }
+      closeModal(); toast(p.id ? "Poll saved" : "Poll created"); loadPolls(); refreshQuiet();
+    }).catch(function () {});
+  });
+  wireOpts();
+}
+function pollOptRow(i, v) { return '<div class="pl-or"><input type="text" maxlength="120" aria-label="Option ' + (i + 1) + '" placeholder="Option ' + (i + 1) + '" value="' + esc(v || "") + '"><button type="button" class="btn ghost sm" data-prm="1" aria-label="Remove option ' + (i + 1) + '">Remove</button></div>'; }
+function wireOpts() {
+  var box = $("pOpts");
+  function sync() { var rows = box.querySelectorAll(".pl-or"); [].forEach.call(rows, function (r, i) { var inp = r.querySelector("input"); inp.placeholder = "Option " + (i + 1); inp.setAttribute("aria-label", "Option " + (i + 1)); r.querySelector("button").disabled = rows.length <= 2; }); $("pAdd").disabled = rows.length >= 8; }
+  $("pAdd").addEventListener("click", function () { if (box.children.length >= 8) return; box.insertAdjacentHTML("beforeend", pollOptRow(box.children.length, "")); sync(); var l = box.lastElementChild.querySelector("input"); if (l) l.focus(); });
+  box.addEventListener("click", function (e) { var b = e.target.closest("[data-prm]"); if (!b || box.children.length <= 2) return; b.parentNode.remove(); sync(); });
+  sync();
+}
+function refreshQuiet() { api("api/all?voter=" + voterId()).then(function (r) { if (r && r.ok) D.polls_open = r.polls_open || []; }).catch(function () {}); }
+$("main").addEventListener("click", function (e) {
+  var b;
+  if ((b = e.target.closest("#plNew"))) return pollForm();
+  if ((b = e.target.closest("#plName"))) return askName();
+  if ((b = e.target.closest("[data-pvote]"))) { var id = +b.getAttribute("data-pvote"); return castVote(id, [+b.getAttribute("data-i")]); }
+  if ((b = e.target.closest("[data-psub]"))) {
+    var pid = +b.getAttribute("data-psub");
+    var ch = [].map.call(document.querySelectorAll('[data-pck="' + pid + '"]:checked'), function (x) { return +x.value; });
+    if (!ch.length) { toast("Tick at least one option."); return; }
+    return castVote(pid, ch);
+  }
+  if ((b = e.target.closest("[data-pchange]"))) { PL.change[+b.getAttribute("data-pchange")] = 1; return drawPolls(); }
+  if ((b = e.target.closest("[data-pcancel]"))) { var c = +b.getAttribute("data-pcancel"); delete PL.change[c]; delete PL.sel[c]; return drawPolls(); }
+  if ((b = e.target.closest("[data-pedit]"))) return pollForm(find(PL.rows, +b.getAttribute("data-pedit")));
+  if ((b = e.target.closest("[data-pcsv]"))) {
+    var cid = +b.getAttribute("data-pcsv");
+    fetch("api/polls.csv?id=" + cid, { headers: { authorization: "Bearer " + token } }).then(function (r) { if (!r.ok) throw 0; return r.blob(); }).then(function (bl) {
+      var a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = "rlw-youth-poll-" + cid + ".csv"; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    }).catch(function () { toast("Could not download. Please try again."); });
+    return;
+  }
+  if ((b = e.target.closest("[data-pact]"))) {
+    var op = b.getAttribute("data-pact"), aid = +b.getAttribute("data-id");
+    if (op === "delete" && !confirm("Delete this poll and all its votes? This cannot be undone.")) return;
+    if (op === "close" && !confirm("Close this poll now? Youth will no longer be able to vote.")) return;
+    b.disabled = true;
+    api("api/polls/action", { id: aid, op: op }).then(function (r) {
+      if (!r.ok) { b.disabled = false; toast(r.error); return; }
+      toast({ close: "Poll closed", reopen: "Poll reopened", pin: "Poll pinned", unpin: "Poll unpinned", delete: "Poll deleted" }[op]); loadPolls(); refreshQuiet();
+    }).catch(function () {});
+  }
+});
+$("main").addEventListener("change", function (e) {
+  var x = e.target; if (!x.matches || !x.matches("[data-pck]")) return;
+  var pid = +x.getAttribute("data-pck");
+  PL.sel[pid] = [].map.call(document.querySelectorAll('[data-pck="' + pid + '"]:checked'), function (y) { return +y.value; });
+});
+$("main").addEventListener("toggle", function (e) { var t = e.target; if (!t || !t.getAttribute) return; if (t.id === "plPast") PL.pastOpen = t.open; var k = t.getAttribute("data-ppeek"); if (k) { if (t.open) PL.peek[k] = 1; else delete PL.peek[k]; } }, true);
+// live results: refresh the Polls tab every 15 seconds while it is on screen
+setInterval(function () {
+  if (cur !== "polls" || !token || document.hidden || !$("modal").hidden || PL.busy) return;
+  var a = document.activeElement; if (a && a.matches && a.matches("[data-pck]")) return;
+  loadPolls();
+}, 15000);
+function pollHomeCard() {
+  var o = (D.polls_open || []).slice();
+  if (!o.length) return "";
+  o.sort(function (a, b) { return (b.pinned - a.pinned) || (b.id - a.id); });
+  var p = o[0], more = o.length - 1;
+  return '<button type="button" class="pl-home" data-go="polls"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="3" y="4" width="13" height="3.2" rx="1.6" fill="currentColor"/><rect x="3" y="10.4" width="18" height="3.2" rx="1.6" fill="currentColor" opacity=".75"/><rect x="3" y="16.8" width="8" height="3.2" rx="1.6" fill="currentColor" opacity=".5"/></svg>' +
+    '<span class="pl-ht"><small>' + (p.voted ? "Youth poll &middot; you voted" : "Youth poll &middot; have your say") + "</small><b>" + esc(p.question) + "</b>" + (more ? "<small>+" + more + " more open poll" + (more === 1 ? "" : "s") + "</small>" : "") + "</span>" +
+    '<span class="pl-go">' + (p.voted ? "See results" : "Vote now") + "</span></button>";
+}
 
 // ---------- Remind Me (calendar) ----------
 var BELL = '<svg class="bell" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v3.6l-1.6 2.7A1 1 0 0 0 5.3 17h13.4a1 1 0 0 0 .9-1.7L18 12.6V9a6 6 0 0 0-6-6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9.5 19.5a2.5 2.5 0 0 0 5 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
@@ -358,6 +546,7 @@ R.home = function () {
   var open = (D.actions || []).filter(function (a) { return !a.done; }).length;
   var h = '<section class="hero hero-vid"><video class="hero-bg" autoplay muted loop playsinline preload="auto" poster="bg/youth_bg_poster.jpg" aria-hidden="true"><source src="bg/youth_bg.mp4" type="video/mp4"></video><div class="hero-ov"></div><div class="hero-in"><p class="eyebrow">Welcome to the</p><h2>Youth Cave</h2><p>' + fdate(ME.today, true) + ". Everything for our youth in one place.</p></div></section>";
   h += '<a class="wa-join" href="https://chat.whatsapp.com/GZ4hiqMFYqNL0cRPoIWazG" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.2-.3-.2-.5-.3z"/></svg><span><b>Join the Youth WhatsApp group</b><small>Chat, updates and reminders with everyone</small></span><span class="wa-go">Join</span></a>';
+  h += pollHomeCard();
   h += '<div class="qk"><button type="button" data-go="events">Events<small>' + up.length + " coming up</small></button>" +
     '<button type="button" data-go="roster">Duty roster<small>' + (g.week.length ? "This week is set" : "Not set for this week") + "</small></button>" +
     '<button type="button" data-go="minutes">Minutes<small>' + open + " open action item" + (open === 1 ? "" : "s") + "</small></button>" +

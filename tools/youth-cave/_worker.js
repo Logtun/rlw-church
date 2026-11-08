@@ -336,6 +336,132 @@ async function cleanup(env, minAgeMs) {
   return { removed };
 }
 
+// ---------- polls (Exco asks, youth vote; one vote per device per poll) ----------
+// Everyone shares the Youth password, so a device is identified by a random voter id the browser keeps in localStorage.
+// The server stores only a hash of that id. Youth see counts and percentages; Exco also see the names.
+let pollsReady = false;
+async function initPolls(env) {
+  if (pollsReady) return;
+  await env.DB.batch([
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS polls (id INTEGER PRIMARY KEY AUTOINCREMENT, question TEXT NOT NULL, options TEXT NOT NULL, multi INTEGER NOT NULL DEFAULT 0, hide_results INTEGER NOT NULL DEFAULT 0, closes_at INTEGER, closed INTEGER NOT NULL DEFAULT 0, pinned INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER)`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS poll_votes (poll_id INTEGER NOT NULL, voter TEXT NOT NULL, name TEXT NOT NULL, choices TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER, PRIMARY KEY (poll_id, voter))`),
+  ]);
+  pollsReady = true;
+}
+const pollOpen = (p, now) => !p.closed && !(p.closes_at && p.closes_at <= now);
+const isVoterId = s => /^[a-f0-9]{32}$/.test(s || "");
+async function voterKey(id) { return (await sha(SALT + "voter:" + id)).slice(0, 40); }
+function pollOpts(p) { try { const o = JSON.parse(p.options); return Array.isArray(o) ? o.map(String) : []; } catch (e) { return []; } }
+function voteChoices(v) { try { const c = JSON.parse(v.choices); return Array.isArray(c) ? c.filter(n => Number.isInteger(n)) : []; } catch (e) { return []; } }
+async function pollsData(env, exco, voterId) {
+  await initPolls(env);
+  const now = Date.now();
+  const { results: polls } = await env.DB.prepare("SELECT * FROM polls ORDER BY pinned DESC, created_at DESC, id DESC LIMIT 200").all();
+  const { results: votes } = polls.length ? await env.DB.prepare("SELECT poll_id, voter, name, choices, updated_at FROM poll_votes").all() : { results: [] };
+  const me = isVoterId(voterId) ? await voterKey(voterId) : "";
+  const by = {}; for (const v of votes) (by[v.poll_id] = by[v.poll_id] || []).push(v);
+  return polls.map(p => {
+    const opts = pollOpts(p), vs = by[p.id] || [], open = pollOpen(p, now);
+    const counts = opts.map(() => 0), names = opts.map(() => []);
+    let mine = null;
+    for (const v of vs) {
+      const ch = voteChoices(v);
+      for (const i of ch) if (i >= 0 && i < opts.length) { counts[i]++; names[i].push(v.name); }
+      if (me && v.voter === me) mine = ch;
+    }
+    const show = exco || !p.hide_results || !!mine || !open;
+    const o = { id: p.id, question: p.question, options: opts, multi: p.multi ? 1 : 0, hide_results: p.hide_results ? 1 : 0, closes_at: p.closes_at || null, closed: p.closed ? 1 : 0, open, pinned: p.pinned ? 1 : 0, created_at: p.created_at, total: vs.length, mine, results: show };
+    if (show) o.counts = counts;
+    if (exco) o.voters = names.map(n => n.slice().sort((a, b) => a.localeCompare(b)));
+    return o;
+  });
+}
+async function listPolls(env, exco, u) {
+  return J({ ok: true, now: Date.now(), polls: await pollsData(env, exco, u.searchParams.get("voter")) });
+}
+async function votePoll(env, ses, body) {
+  await initPolls(env);
+  const id = parseInt(body.poll_id, 10) || 0, now = Date.now();
+  if (!isVoterId(body.voter)) return J({ ok: false, error: "Your phone could not be recognised. Please refresh the page and try again." }, 400);
+  const name = clip1(body.name, 60);
+  if (name.length < 2) return J({ ok: false, error: "Please type your name first." }, 400);
+  const p = await env.DB.prepare("SELECT * FROM polls WHERE id = ?").bind(id).first();
+  if (!p) return J({ ok: false, error: "This poll no longer exists. Refresh the page." }, 404);
+  if (!pollOpen(p, now)) return J({ ok: false, error: "This poll is closed." }, 400);
+  const n = pollOpts(p).length;
+  let ch = Array.isArray(body.choices) ? body.choices.map(x => parseInt(x, 10)).filter(x => Number.isInteger(x) && x >= 0 && x < n) : [];
+  ch = [...new Set(ch)].sort((a, b) => a - b);
+  if (!ch.length) return J({ ok: false, error: "Pick an option first." }, 400);
+  if (!p.multi && ch.length > 1) return J({ ok: false, error: "This poll takes one choice only." }, 400);
+  const rk = (await sha(SALT + "vote:" + ses.th)).slice(0, 32);
+  const rl = await env.DB.prepare("SELECT COUNT(*) AS n FROM ratelimit WHERE k = ? AND ts > ?").bind(rk, now - 3600000).first();
+  if ((rl && rl.n) >= 60) return J({ ok: false, error: "Too many votes from this phone in the last hour. Please try again later." }, 429);
+  await env.DB.prepare("INSERT INTO ratelimit (k, ts) VALUES (?, ?)").bind(rk, now).run();
+  const vk = await voterKey(body.voter);
+  await env.DB.prepare("INSERT INTO poll_votes (poll_id, voter, name, choices, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(poll_id, voter) DO UPDATE SET name = excluded.name, choices = excluded.choices, updated_at = excluded.updated_at")
+    .bind(id, vk, name, JSON.stringify(ch), now, now).run();
+  return J({ ok: true });
+}
+async function savePoll(env, body) {
+  await initPolls(env);
+  const id = parseInt(body.id, 10) || 0, now = Date.now();
+  const question = clip1(body.question, 200);
+  if (question.length < 3) return J({ ok: false, error: "Please type the question." }, 400);
+  const opts = (Array.isArray(body.options) ? body.options : []).map(o => clip1(o, 120)).filter(Boolean);
+  if (opts.length < 2) return J({ ok: false, error: "Add at least 2 options." }, 400);
+  if (opts.length > 8) return J({ ok: false, error: "A poll can have up to 8 options." }, 400);
+  if (new Set(opts.map(o => o.toLowerCase())).size !== opts.length) return J({ ok: false, error: "Two options are the same. Please make each option different." }, 400);
+  const cd = String(body.closes_date || "").trim(); let ct = String(body.closes_time || "").trim();
+  let closes = null;
+  if (cd || ct) {
+    if (!cd) return J({ ok: false, error: "Add the closing date too, or clear the closing time." }, 400);
+    if (!isDate(cd)) return J({ ok: false, error: "Pick a valid closing date." }, 400);
+    if (!ct) ct = "23:59";
+    if (!isTime(ct)) return J({ ok: false, error: "Closing time must look like 20:00." }, 400);
+    closes = lagosMs(cd, ct);
+    if (closes <= now + 60000) return J({ ok: false, error: "The closing date and time must be in the future." }, 400);
+  }
+  const multi = body.multi ? 1 : 0, hide = body.hide_results ? 1 : 0;
+  if (id) {
+    const old = await env.DB.prepare("SELECT id FROM polls WHERE id = ?").bind(id).first();
+    if (!old) return J({ ok: false, error: "This poll no longer exists. Refresh the page." }, 404);
+    const v = await env.DB.prepare("SELECT COUNT(*) AS n FROM poll_votes WHERE poll_id = ?").bind(id).first();
+    if (v && v.n) return J({ ok: false, error: "This poll already has votes, so it can no longer be edited. You can close it and start a new one." }, 400);
+    await env.DB.prepare("UPDATE polls SET question = ?, options = ?, multi = ?, hide_results = ?, closes_at = ?, updated_at = ? WHERE id = ?").bind(question, JSON.stringify(opts), multi, hide, closes, now, id).run();
+    return J({ ok: true, id });
+  }
+  const r = await env.DB.prepare("INSERT INTO polls (question, options, multi, hide_results, closes_at, closed, pinned, created_at) VALUES (?, ?, ?, ?, ?, 0, 0, ?)").bind(question, JSON.stringify(opts), multi, hide, closes, now).run();
+  const nid = r.meta.last_row_id;
+  if (body.pinned) await env.DB.batch([env.DB.prepare("UPDATE polls SET pinned = 0 WHERE id != ?").bind(nid), env.DB.prepare("UPDATE polls SET pinned = 1 WHERE id = ?").bind(nid)]);
+  return J({ ok: true, id: nid });
+}
+async function pollAction(env, body) {
+  await initPolls(env);
+  const id = parseInt(body.id, 10) || 0, op = String(body.op || ""), now = Date.now();
+  const p = await env.DB.prepare("SELECT * FROM polls WHERE id = ?").bind(id).first();
+  if (!p) return J({ ok: op === "delete", gone: true, error: "This poll no longer exists. Refresh the page." }, op === "delete" ? 200 : 404);
+  if (op === "close") await env.DB.prepare("UPDATE polls SET closed = 1, updated_at = ? WHERE id = ?").bind(now, id).run();
+  else if (op === "reopen") await env.DB.prepare("UPDATE polls SET closed = 0, closes_at = CASE WHEN closes_at IS NOT NULL AND closes_at <= ? THEN NULL ELSE closes_at END, updated_at = ? WHERE id = ?").bind(now, now, id).run();
+  else if (op === "pin") await env.DB.batch([env.DB.prepare("UPDATE polls SET pinned = 0 WHERE id != ?").bind(id), env.DB.prepare("UPDATE polls SET pinned = 1, updated_at = ? WHERE id = ?").bind(now, id)]);
+  else if (op === "unpin") await env.DB.prepare("UPDATE polls SET pinned = 0, updated_at = ? WHERE id = ?").bind(now, id).run();
+  else if (op === "delete") await env.DB.batch([env.DB.prepare("DELETE FROM poll_votes WHERE poll_id = ?").bind(id), env.DB.prepare("DELETE FROM polls WHERE id = ?").bind(id)]);
+  else return J({ ok: false, error: "Unknown action." }, 400);
+  return J({ ok: true });
+}
+async function pollCsv(env, id) {
+  await initPolls(env);
+  const p = await env.DB.prepare("SELECT * FROM polls WHERE id = ?").bind(id).first();
+  if (!p) return J({ ok: false, error: "This poll no longer exists." }, 404);
+  const opts = pollOpts(p);
+  const { results: vs } = await env.DB.prepare("SELECT name, choices FROM poll_votes WHERE poll_id = ? ORDER BY name COLLATE NOCASE").bind(id).all();
+  const names = opts.map(() => []);
+  for (const v of vs) for (const i of voteChoices(v)) if (i >= 0 && i < opts.length) names[i].push(v.name);
+  const lines = [["Poll", p.question], ["Status", pollOpen(p, Date.now()) ? "Open" : "Closed"], ["Total voters", vs.length], [], ["Option", "Votes", "Voters"]];
+  opts.forEach((o, i) => lines.push([o, names[i].length, names[i].join("; ")]));
+  const slug = p.question.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40).toLowerCase() || "poll";
+  return csvResp(lines, `rlw-youth-poll-${id}-${slug}.csv`);
+}
+
 // ---------- jobs & opportunities ----------
 // Filled daily by the updater script through POST /api/jobs/import (header x-import-key).
 const IMPORT_HASH = "REPLACE_WITH_IMPORT_KEY_HASH"; // sha256(SALT + "import:" + key); the plain key lives only on the updater's machine
@@ -531,6 +657,7 @@ async function api(req, env, path, u) {
     for (const e of out.events) if (e.date && e.time) e.ics_k = await icsKey("event", e.id);
     if (canMoney) out.offerings = await listSection(env, "offerings");
     if (exco) { const r = await env.DB.prepare("SELECT COUNT(*) AS n FROM suggestions WHERE status = 'new'").first(); out.new_suggestions = r ? r.n : 0; }
+    try { out.polls_open = (await pollsData(env, false, u.searchParams.get("voter"))).filter(p => p.open).map(p => ({ id: p.id, question: p.question, pinned: p.pinned, closes_at: p.closes_at, voted: !!p.mine, total: p.total })); } catch (e) { out.polls_open = []; }
     return J(out);
   }
   const lm = path.match(/^\/api\/list\/([a-z]+)$/);
@@ -575,10 +702,15 @@ async function api(req, env, path, u) {
   }
 
   if (path === "/api/jobs" && req.method === "GET") return listJobs(env, exco);
+  if (path === "/api/polls" && req.method === "GET") return listPolls(env, exco, u);
+  if (path === "/api/polls/vote" && req.method === "POST") return votePoll(env, ses, body);
   // everything below is Exco only
   if (!exco) return J({ ok: false, error: "Only Exco can make changes." }, 403);
   const jm = path.match(/^\/api\/jobs\/(save|hide|delete)$/);
   if (jm && req.method === "POST") return jobsExco(env, jm[1], body);
+  if (path === "/api/polls/save" && req.method === "POST") return savePoll(env, body);
+  if (path === "/api/polls/action" && req.method === "POST") return pollAction(env, body);
+  if (path === "/api/polls.csv" && req.method === "GET") return pollCsv(env, parseInt(u.searchParams.get("id"), 10) || 0);
   if (path === "/api/upload" && req.method === "POST") return upload(req, env);
   const sm = path.match(/^\/api\/(save|delete)\/([a-z]+)$/);
   if (sm && req.method === "POST") {
