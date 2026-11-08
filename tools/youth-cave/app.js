@@ -295,7 +295,7 @@ R.home = function () {
   var up = (D.events || []).filter(function (e) { return e.date >= ME.today; }).slice(0, 3);
   var g = rosterGroups();
   var open = (D.actions || []).filter(function (a) { return !a.done; }).length;
-  var h = '<section class="hero"><p class="eyebrow">Welcome to the</p><h2>Youth Cave</h2><p>' + fdate(ME.today, true) + ". Everything for our youth in one place.</p></section>";
+  var h = '<section class="hero hero-vid"><video class="hero-bg" autoplay muted loop playsinline preload="auto" poster="bg/youth_bg_poster.jpg" aria-hidden="true"><source src="bg/youth_bg.mp4" type="video/mp4"></video><div class="hero-ov"></div><div class="hero-in"><p class="eyebrow">Welcome to the</p><h2>Youth Cave</h2><p>' + fdate(ME.today, true) + ". Everything for our youth in one place.</p></div></section>";
   h += '<div class="qk"><button type="button" data-go="events">Events<small>' + up.length + " coming up</small></button>" +
     '<button type="button" data-go="roster">Duty roster<small>' + (g.week.length ? "This week is set" : "Not set for this week") + "</small></button>" +
     '<button type="button" data-go="minutes">Minutes<small>' + open + " open action item" + (open === 1 ? "" : "s") + "</small></button>" +

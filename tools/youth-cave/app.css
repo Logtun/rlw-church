@@ -200,3 +200,12 @@ input[type=search],input[type=url]{width:100%;padding:12px 13px;border:1px solid
 .card.job.hid{opacity:.7;border-style:dashed}
 .tag.r{background:#fdecec;color:#9b1c1c;margin-bottom:6px}
 .jnote{margin:16px 0 4px;padding:12px 14px;border-radius:12px;background:#eef1fb;color:var(--navy);font-size:14px;font-weight:600;line-height:1.45}
+
+
+/* welcome video background */
+.hero-vid{position:relative;overflow:hidden;isolation:isolate;min-height:210px;display:flex;align-items:flex-end;background:#1B2A6B}
+.hero-vid .hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;border-radius:inherit}
+.hero-vid .hero-ov{position:absolute;inset:0;z-index:-1;border-radius:inherit;background:linear-gradient(180deg,rgba(27,42,107,.48) 0%,rgba(27,42,107,.56) 50%,rgba(27,42,107,.68) 100%)}
+.hero-vid .hero-in{position:relative}
+.hero-vid h2,.hero-vid p{text-shadow:0 1px 3px rgba(0,0,0,.35)}
+@media (prefers-reduced-motion: reduce){.hero-vid .hero-bg{display:none}.hero-vid{background:#1B2A6B url(bg/youth_bg_poster.jpg) center/cover no-repeat}}
