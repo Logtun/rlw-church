@@ -1,11 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme-default="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Host RLW Bible Quiz Night</title>
 <meta name="description" content="Host a live Bible quiz: game PIN, QR code, lobby, timer, leaderboard and podium.">
-<meta name="theme-color" content="#050505">
+<meta name="theme-color" content="#050505" data-dark="#050505" data-light="#f5f7fc">
+<script>(function(){var r=document.documentElement,t;try{t=localStorage.getItem('rlw-theme')}catch(e){}if(t!=='dark'&&t!=='light'){try{t='dark'}catch(e){t='dark'}}r.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m){if(!m.hasAttribute('data-light'))m.setAttribute('data-light',m.getAttribute('content'));m.setAttribute('content',t==='dark'?(m.getAttribute('data-dark')||'#0E1116'):m.getAttribute('data-light'))}})()</script>
 <meta property="og:title" content="Host RLW Bible Quiz Night">
 <meta property="og:description" content="Host a live Bible quiz: game PIN, QR code, lobby, timer, leaderboard and podium.">
 <meta property="og:image" content="https://rlw-bible-quiz.sites.tab.bot/og.png?v=1">
@@ -17,11 +18,13 @@
 <link rel="icon" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="styles.css?v=rlw2p">
+<link rel="stylesheet" href="theme.css?v=1">
 </head>
 <body>
 <header class="top">
   <a class="brand" href="index.html"><img src="logo.png" alt="Rivers of Living Water Parish" height="40"><span class="q">Bible Quiz</span></a>
   <nav aria-label="Main"><a href="index.html">Join</a><a href="solo.html">Solo</a><a href="host.html" aria-current="page">Host</a><a href="editor.html">Editor</a></nav>
+<button type="button" class="rlw-tt" aria-label="Light mode" title="Light mode"></button>
 </header>
 <main id="main">
 
@@ -38,6 +41,6 @@
 
 </main>
 <footer><div>Rivers of Living Water Parish</div><div style="margin-top:6px;font-size:.85em;opacity:.8">© 2026 Rivers Of Living Water</div></footer>
-<script src="qrcode.js?v=3"></script><script src="common.js?v=u1"></script><script src="sound.js?v=u1"></script><script src="host.js?v=u1"></script>
+<script src="qrcode.js?v=3"></script><script src="theme.js?v=1"></script><script src="common.js?v=u1"></script><script src="sound.js?v=u1"></script><script src="host.js?v=u1"></script>
 </body>
 </html>

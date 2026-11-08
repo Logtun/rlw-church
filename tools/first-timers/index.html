@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme-default="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,11 +12,14 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:url" content="https://rlw-first-timers.sites.tab.bot/">
-<meta name="theme-color" content="#07080c">
+<meta name="theme-color" content="#07080c" data-dark="#07080c" data-light="#f5f7fc">
+<script>(function(){var r=document.documentElement,t;try{t=localStorage.getItem('rlw-theme')}catch(e){}if(t!=='dark'&&t!=='light'){try{t='dark'}catch(e){t='dark'}}r.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m){if(!m.hasAttribute('data-light'))m.setAttribute('data-light',m.getAttribute('content'));m.setAttribute('content',t==='dark'?(m.getAttribute('data-dark')||'#0E1116'):m.getAttribute('data-light'))}})()</script>
 <link rel="stylesheet" href="app.css?v=u1">
+<link rel="stylesheet" href="theme.css?v=1">
 </head>
 <body>
 <main class="wrap">
+<button type="button" class="rlw-tt rlw-corner" aria-label="Light mode" title="Light mode"></button>
 <header class="brand">
 <img src="logo.jpg" width="244" height="320" alt="RCCG Rivers of Living Water Parish logo">
 <h1>Welcome to Rivers of Living Water Parish</h1>
@@ -84,6 +87,7 @@
 </section>
 </main>
 <footer class="foot">Rivers of Living Water Parish<span style="display:block;margin-top:6px;font-size:.85em;opacity:.8">© 2026 Rivers Of Living Water</span></footer>
+<script src="theme.js?v=1"></script>
 <script src="checkin.js?v=u1"></script>
 </body>
 </html>

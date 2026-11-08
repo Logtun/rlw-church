@@ -1,0 +1,72 @@
+/* Dark mode toggle button (light look first, then dark) */
+.rlw-tt{display:inline-flex;align-items:center;justify-content:center;flex:none;width:38px;height:38px;padding:0;margin:0;border-radius:999px;border:1px solid #cfd5e6;background:#fff;color:#1B2A6B;cursor:pointer;line-height:0;-webkit-tap-highlight-color:transparent}
+.rlw-tt:hover{background:#f5f7fc}
+.rlw-tt:focus-visible{outline:3px solid #0A8F4A;outline-offset:2px}
+.rlw-tt svg{display:block;width:20px;height:20px}
+html.rlw-tanim,html.rlw-tanim *,html.rlw-tanim *::before,html.rlw-tanim *::after{transition:background-color .25s ease,color .25s ease,border-color .25s ease,fill .25s ease,box-shadow .25s ease!important}
+@media (prefers-reduced-motion:reduce){html.rlw-tanim,html.rlw-tanim *,html.rlw-tanim *::before,html.rlw-tanim *::after{transition:none!important}}
+[data-theme=dark] .rlw-tt{background:#161B22;border-color:#2A3140;color:#F0D78A}
+[data-theme=dark] .rlw-tt:hover{background:#1c222c}
+
+/* ---- Light mode (this tool is dark by default; light is opt-in via the toggle or the homepage) ---- */
+html[data-theme=light]{--bg:#f5f7fc;--panel:#ffffff;--panel2:#f5f7fc;--line:#dfe3ee;--text:#141a33;--muted:#5d6580;--focus:#1B2A6B}
+[data-theme=light] header.brand img,[data-theme=light] .topbar img{content:url(logo-d.png)}
+main.wrap{position:relative}
+.rlw-corner{position:absolute;top:12px;right:12px;z-index:5}
+main.wrap:has(#appView:not(.hidden))>.rlw-corner{display:none}
+[data-theme=light] body{background:var(--bg);color:var(--text)}
+[data-theme=light] a{color:#1270a5}
+[data-theme=light] .lead{color:var(--muted)}
+[data-theme=light] .card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+[data-theme=light] .accent{border-radius:4px;background:linear-gradient(90deg,var(--navy2) 0 50%,var(--green) 50% 100%)}
+[data-theme=light] input[type=text],[data-theme=light] input[type=tel],[data-theme=light] input[type=password],[data-theme=light] input[type=search],[data-theme=light] input[type=date],[data-theme=light] input[type=month],[data-theme=light] input[type=time],[data-theme=light] input[type=number],[data-theme=light] textarea,[data-theme=light] select{color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:12px}
+[data-theme=light] input::placeholder,[data-theme=light] textarea::placeholder{color:#7d8394}
+[data-theme=light] :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+[data-theme=light] input:focus,[data-theme=light] textarea:focus,[data-theme=light] select:focus{border-color:var(--focus)}
+[data-theme=light] .hint{color:var(--muted)}
+[data-theme=light] .err{color:#a51212}
+[data-theme=light] .ok{color:#289052}
+[data-theme=light] .btn{border:0;border-radius:12px;text-decoration:none;color:#fff;background:var(--green)}
+[data-theme=light] .btn:hover{background:var(--green2)}
+[data-theme=light] .btn.big{border-radius:16px}
+[data-theme=light] .btn.navy{background:var(--navy2)}
+[data-theme=light] .btn.navy:hover{background:#3550b8}
+[data-theme=light] .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
+[data-theme=light] .btn.ghost:hover{background:var(--panel2)}
+[data-theme=light] .btn.danger{background:#8d2323}
+[data-theme=light] .linkbtn{background:none;border:0;color:#1270a5;text-decoration:underline}
+[data-theme=light] footer.foot{color:var(--muted);border-top:1px solid var(--line)}
+[data-theme=light] .small{color:var(--muted)}
+[data-theme=light] .brand h1 .scr{color:var(--gold)}
+[data-theme=light] .drop{border:2px dashed #3b4466;border-radius:16px;background:var(--panel2)}
+[data-theme=light] .drop:hover,[data-theme=light] .drop:focus-within{border-color:var(--gold)}
+[data-theme=light] .cropbox{border-radius:16px;background:#f5f7fc;border:1px solid var(--line)}
+[data-theme=light] .cropring{border-radius:50%;box-shadow:0 0 0 2000px rgba(20,30,80,0.15);border:3px solid rgba(226,177,60,.95)}
+[data-theme=light] .flyerprev{border-radius:12px;border:1px solid var(--line)}
+[data-theme=light] .opt{color:var(--muted)}
+[data-theme=light] .tabs{border-bottom:1px solid var(--line)}
+[data-theme=light] .tabs button{background:none;color:var(--muted);border:0;border-bottom:3px solid transparent}
+[data-theme=light] .tabs button[aria-selected=true]{color:#141a33;border-bottom-color:var(--green)}
+[data-theme=light] .mtabs button{background:var(--panel);color:var(--muted);border:1px solid var(--line);border-radius:10px}
+[data-theme=light] .mtabs button b{color:var(--text)}
+[data-theme=light] .mtabs button[aria-selected=true]{background:var(--navy2);border-color:#5d72d6;color:#fff}
+[data-theme=light] .mtabs button.has span{color:var(--gold)}
+[data-theme=light] .mtabs button[aria-selected=true] span{color:#141a33}
+[data-theme=light] .pcard{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+[data-theme=light] .pcard img,[data-theme=light] .pcard .ph{border-radius:50%;border:3px solid var(--gold);background:var(--panel2)}
+[data-theme=light] .pcard .ph{color:var(--muted)}
+[data-theme=light] .pcard .dt{color:var(--gold)}
+[data-theme=light] .pcard .meta{color:var(--muted)}
+[data-theme=light] .badge{border-radius:999px;background:#f7f1e3;color:#a56e12;border:1px solid var(--amber)}
+[data-theme=light] .empty{color:var(--muted);border:1px dashed var(--line);border-radius:14px}
+[data-theme=light] .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+[data-theme=light] .thumbs img{border-radius:8px;border:1px solid var(--line)}
+[data-theme=light] .prog{border-radius:999px;background:var(--panel2);border:1px solid var(--line)}
+[data-theme=light] .prog i{background:linear-gradient(90deg,var(--green),var(--gold))}
+[data-theme=light] .vidout video,[data-theme=light] .vidout canvas{border-radius:10px;border:1px solid var(--line);background:#f5f7fc}
+[data-theme=light] dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:16px}
+[data-theme=light] dialog::backdrop{background:rgba(20,30,80,0.33)}
+[data-theme=light] .songs .s{border-bottom:1px solid var(--line)}
+/* ---- Light mode hand-tuned ---- */
+main.wrap:has(#appView:not(.hidden))>.rlw-corner{display:inline-flex}
+@media (min-width:600px){main.wrap:has(#appView:not(.hidden)) .topbar{padding-right:50px}}

@@ -1,0 +1,63 @@
+/* Dark mode toggle button (light look first, then dark) */
+.rlw-tt{display:inline-flex;align-items:center;justify-content:center;flex:none;width:38px;height:38px;padding:0;margin:0;border-radius:999px;border:1px solid #cfd5e6;background:#fff;color:#1B2A6B;cursor:pointer;line-height:0;-webkit-tap-highlight-color:transparent}
+.rlw-tt:hover{background:#f5f7fc}
+.rlw-tt:focus-visible{outline:3px solid #0A8F4A;outline-offset:2px}
+.rlw-tt svg{display:block;width:20px;height:20px}
+html.rlw-tanim,html.rlw-tanim *,html.rlw-tanim *::before,html.rlw-tanim *::after{transition:background-color .25s ease,color .25s ease,border-color .25s ease,fill .25s ease,box-shadow .25s ease!important}
+@media (prefers-reduced-motion:reduce){html.rlw-tanim,html.rlw-tanim *,html.rlw-tanim *::before,html.rlw-tanim *::after{transition:none!important}}
+[data-theme=dark] .rlw-tt{background:#161B22;border-color:#2A3140;color:#F0D78A}
+[data-theme=dark] .rlw-tt:hover{background:#1c222c}
+
+/* ---- Light mode (this tool is dark by default; light is opt-in via the toggle or the homepage) ---- */
+html[data-theme=light]{--bg:#f5f7fc;--panel:#ffffff;--panel2:#f5f7fc;--line:#dfe3ee;--text:#141a33;--muted:#5d6580;--focus:#1B2A6B}
+[data-theme=light] header.brand img,[data-theme=light] .topbar img{content:url(logo-d.png)}
+main.wrap{position:relative}
+.rlw-corner{position:absolute;top:12px;right:12px;z-index:5}
+main.wrap:has(#appView:not(.hidden))>.rlw-corner{display:none}
+[data-theme=light] body{background:var(--bg);color:var(--text)}
+[data-theme=light] a{color:#1270a5}
+[data-theme=light] .lead{color:var(--muted)}
+[data-theme=light] .card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+[data-theme=light] .accent{border-radius:4px;background:linear-gradient(90deg,var(--navy2),var(--green))}
+[data-theme=light] .opt{color:var(--muted)}
+[data-theme=light] input[type=text],[data-theme=light] input[type=tel],[data-theme=light] input[type=password],[data-theme=light] textarea,[data-theme=light] select{color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:12px}
+[data-theme=light] input::placeholder,[data-theme=light] textarea::placeholder{color:#7d8394}
+[data-theme=light] :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+[data-theme=light] input:focus,[data-theme=light] textarea:focus,[data-theme=light] select:focus{border-color:var(--focus)}
+[data-theme=light] .choices span{border:1px solid var(--line);border-radius:999px;background:var(--panel2)}
+[data-theme=light] .choices input:checked+span{background:var(--navy2);border-color:#7a6cf0;color:#fff}
+[data-theme=light] .choices input:focus-visible+span{outline:3px solid var(--focus);outline-offset:2px}
+[data-theme=light] .check{background:var(--panel2);border:1px solid var(--line);border-radius:12px}
+[data-theme=light] .hint{color:var(--muted)}
+[data-theme=light] .err{color:#a51212}
+[data-theme=light] .bad input,[data-theme=light] .bad textarea{border-color:#ff8f8f}
+[data-theme=light] .btn{border:0;border-radius:12px;text-decoration:none;color:#fff;background:var(--green)}
+[data-theme=light] .btn:hover{background:var(--green2)}
+[data-theme=light] .btn.navy{background:var(--navy2)}
+[data-theme=light] .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
+[data-theme=light] .thanks .tick{border-radius:50%;background:var(--green)}
+[data-theme=light] footer.foot{color:var(--muted);border-top:1px solid var(--line)}
+[data-theme=light] .private{color:var(--muted)}
+[data-theme=light] .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+[data-theme=light] .stat span{color:var(--muted)}
+[data-theme=light] .seg{border:1px solid var(--line);border-radius:12px}
+[data-theme=light] .seg button{background:var(--panel);color:var(--text);border:0}
+[data-theme=light] .seg button[aria-pressed=true]{background:var(--navy2);color:#fff}
+[data-theme=light] .group h2{color:#3a4366;border-bottom:1px solid var(--line)}
+[data-theme=light] .person{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+[data-theme=light] .person .meta{color:var(--muted)}
+[data-theme=light] .tag{border-radius:999px;background:var(--panel2);border:1px solid var(--line)}
+[data-theme=light] .tag.yes{background:#e4f7ec;border-color:#1f9d55}
+[data-theme=light] .tag.done{background:#e6e5f5;border-color:#5b4fd6}
+[data-theme=light] .tag.warn{background:#f7eee3;border-color:#b07a2a}
+[data-theme=light] .prayer{background:var(--panel2);border-left:3px solid var(--navy2);border-radius:8px}
+[data-theme=light] .wa{background:#1f9d55}
+[data-theme=light] .status{color:#3a4366}
+[data-theme=light] .markform{background:var(--panel2);border-radius:12px;border:1px solid var(--line)}
+[data-theme=light] .empty{color:var(--muted)}
+[data-theme=light] .small{color:var(--muted)}
+[data-theme=light] .del{color:#a51212;background:none;border:0;text-decoration:underline}
+/* ---- Light mode hand-tuned ---- */
+[data-theme=light] .del[style*="9fdcff"]{color:#1270a5!important}
+[data-theme=light] #tplMsg[style*="127, 224, 166"]{color:#0A8F4A!important}
+[data-theme=light] .accent{background:linear-gradient(90deg,#1B2A6B,#0A8F4A)}
