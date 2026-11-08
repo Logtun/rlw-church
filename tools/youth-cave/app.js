@@ -72,7 +72,7 @@ function drawTabs() {
 $("tabs").addEventListener("click", function (e) { var b = e.target.closest("[data-tab]"); if (b) go(b.getAttribute("data-tab")); });
 function go(t) {
   if (t === "plans") PN.open = 0;
-  cur = t; try { history.replaceState(null, "", "#" + t); } catch (e) {}
+  cur = t; TX = true; try { history.replaceState(null, "", "#" + t); } catch (e) {}
   drawTabs(); render();
   var a = document.querySelector('.tab[aria-current="page"]'); if (a && a.scrollIntoView) a.scrollIntoView({ block: "nearest", inline: "center" });
   window.scrollTo(0, 0);
@@ -251,11 +251,165 @@ document.addEventListener("click", kickHeroVideo);
 document.addEventListener("visibilitychange", function () { if (!document.hidden) kickHeroVideo(); });
 window.addEventListener("pageshow", kickHeroVideo);
 
+var TICON = {"notices": "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z\"/><path d=\"M15.5 8.5a5 5 0 0 1 0 7\"/><path d=\"M18.5 5.5a9 9 0 0 1 0 13\"/></svg>", "polls": "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 20V10\"/><path d=\"M10 20V4\"/><path d=\"M16 20v-7\"/><path d=\"M21 20H3\"/></svg>", "plans": "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"5\" y=\"4\" width=\"14\" height=\"17\" rx=\"2\"/><path d=\"M9 4V2.8h6V4\"/><path d=\"M8.5 11l1.8 1.8 3.4-3.4\"/><path d=\"M8.5 16.5h7\"/></svg>", "events": "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3.5\" y=\"5\" width=\"17\" height=\"15.5\" rx=\"2\"/><path d=\"M3.5 10h17\"/><path d=\"M8 3v4M16 3v4\"/><path d=\"M8 14h2M14 14h2M8 17h2\"/></svg>", "roster": "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"4\" y=\"3.5\" width=\"16\" height=\"17\" rx=\"2\"/><path d=\"M8 8h8M8 12h8M8 16h5\"/></svg>", "minutes": "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z\"/><path d=\"M14 3v5h5\"/><path d=\"M9 13h6M9 17h4\"/></svg>", "offering": "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3.5\" y=\"9\" width=\"17\" height=\"11.5\" rx=\"1.5\"/><path d=\"M2.5 9h19V6.5h-19z\"/><path d=\"M12 6.5v14\"/><path d=\"M12 6.5C10.5 3 7 3.3 7.3 5.3 7.5 6.6 12 6.5 12 6.5zM12 6.5c1.5-3.5 5-3.2 4.7-1.2-.2 1.3-4.7 1.2-4.7 1.2z\"/></svg>", "contrib": "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 14h3l3.5 1.5h3a1.5 1.5 0 0 1 0 3H9\"/><path d=\"M12.5 18.5l5-2.2a1.6 1.6 0 0 1 1.8 2.5L14 22H6l-3-2\"/><circle cx=\"14\" cy=\"7\" r=\"4\"/><path d=\"M14 5.5v3\"/></svg>", "expenses": "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 2.5h12v19l-2.5-1.6L13 21.5l-2.5-1.6L8.5 21.5 6 19.9z\"/><path d=\"M9 7.5h6M9 11h6M9 14.5h4\"/></svg>", "exco": "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"8\" r=\"3.2\"/><path d=\"M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6\"/><circle cx=\"17\" cy=\"9\" r=\"2.5\"/><path d=\"M16.5 14.1A5 5 0 0 1 21 19\"/></svg>", "jobs": "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"7\" width=\"18\" height=\"13\" rx=\"2\"/><path d=\"M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2\"/><path d=\"M3 12.5h18\"/><path d=\"M11 12.5v1.5h2v-1.5\"/></svg>", "suggest": "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 18h6\"/><path d=\"M10 21h4\"/><path d=\"M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z\"/></svg>", "settings": "<svg viewBox=\"0 0 24 24\" width=\"26\" height=\"26\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z\"/></svg>"};
+// Verse of the week: KJV text (checked list from the parish homepage + bible-api.com KJV), picked by ISO week of the Lagos date.
+var VW = [{"t": "For I know the thoughts that I think toward you, saith the LORD, thoughts of peace, and not of evil, to give you an expected end.", "r": "Jeremiah 29:11"}, {"t": "I can do all things through Christ which strengtheneth me.", "r": "Philippians 4:13"}, {"t": "Have not I commanded thee? Be strong and of a good courage; be not afraid, neither be thou dismayed: for the LORD thy God is with thee whithersoever thou goest.", "r": "Joshua 1:9"}, {"t": "Trust in the LORD with all thine heart; and lean not unto thine own understanding. In all thy ways acknowledge him, and he shall direct thy paths.", "r": "Proverbs 3:5-6"}, {"t": "But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.", "r": "Isaiah 40:31"}, {"t": "And be not conformed to this world: but be ye transformed by the renewing of your mind, that ye may prove what is that good, and acceptable, and perfect, will of God.", "r": "Romans 12:2"}, {"t": "Let your light so shine before men, that they may see your good works, and glorify your Father which is in heaven.", "r": "Matthew 5:16"}, {"t": "Thy word is a lamp unto my feet, and a light unto my path.", "r": "Psalm 119:105"}, {"t": "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind.", "r": "2 Timothy 1:7"}, {"t": "Fear thou not; for I am with thee: be not dismayed; for I am thy God: I will strengthen thee; yea, I will help thee; yea, I will uphold thee with the right hand of my righteousness.", "r": "Isaiah 41:10"}, {"t": "But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you.", "r": "Matthew 6:33"}, {"t": "Commit thy way unto the LORD; trust also in him; and he shall bring it to pass.", "r": "Psalm 37:5"}, {"t": "And we know that all things work together for good to them that love God, to them who are the called according to his purpose.", "r": "Romans 8:28"}, {"t": "Wherewithal shall a young man cleanse his way? by taking heed thereto according to thy word.", "r": "Psalm 119:9"}, {"t": "These things I have spoken unto you, that in me ye might have peace. In the world ye shall have tribulation: but be of good cheer; I have overcome the world.", "r": "John 16:33"}, {"t": "And let us not be weary in well doing: for in due season we shall reap, if we faint not.", "r": "Galatians 6:9"}, {"t": "God is our refuge and strength, a very present help in trouble.", "r": "Psalm 46:1"}, {"t": "Finally, my brethren, be strong in the Lord, and in the power of his might.", "r": "Ephesians 6:10"}, {"t": "Commit thy works unto the LORD, and thy thoughts shall be established.", "r": "Proverbs 16:3"}, {"t": "Peace I leave with you, my peace I give unto you: not as the world giveth, give I unto you. Let not your heart be troubled, neither let it be afraid.", "r": "John 14:27"}, {"t": "Therefore if any man be in Christ, he is a new creature: old things are passed away; behold, all things are become new.", "r": "2 Corinthians 5:17"}, {"t": "Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God.", "r": "Philippians 4:6"}, {"t": "The LORD is my light and my salvation; whom shall I fear? the LORD is the strength of my life; of whom shall I be afraid?", "r": "Psalm 27:1"}, {"t": "If any of you lack wisdom, let him ask of God, that giveth to all men liberally, and upbraideth not; and it shall be given him.", "r": "James 1:5"}, {"t": "Ye are the light of the world. A city that is set on an hill cannot be hid.", "r": "Matthew 5:14"}, {"t": "Thou wilt keep him in perfect peace, whose mind is stayed on thee: because he trusteth in thee.", "r": "Isaiah 26:3"}, {"t": "Nay, in all these things we are more than conquerors through him that loved us.", "r": "Romans 8:37"}, {"t": "Create in me a clean heart, O God; and renew a right spirit within me.", "r": "Psalm 51:10"}, {"t": "Flee also youthful lusts: but follow righteousness, faith, charity, peace, with them that call on the Lord out of a pure heart.", "r": "2 Timothy 2:22"}, {"t": "It is of the LORD’S mercies that we are not consumed, because his compassions fail not. They are new every morning: great is thy faithfulness.", "r": "Lamentations 3:22-23"}, {"t": "The thief cometh not, but for to steal, and to kill, and to destroy: I am come that they might have life, and that they might have it more abundantly.", "r": "John 10:10"}, {"t": "Be strong and of a good courage, fear not, nor be afraid of them: for the LORD thy God, he it is that doth go with thee; he will not fail thee, nor forsake thee.", "r": "Deuteronomy 31:6"}, {"t": "What time I am afraid, I will trust in thee.", "r": "Psalm 56:3"}, {"t": "But the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith, Meekness, temperance: against such there is no law.", "r": "Galatians 5:22-23"}, {"t": "Now unto him that is able to do exceeding abundantly above all that we ask or think, according to the power that worketh in us,", "r": "Ephesians 3:20"}, {"t": "Arise, shine; for thy light is come, and the glory of the LORD is risen upon thee.", "r": "Isaiah 60:1"}, {"t": "I will instruct thee and teach thee in the way which thou shalt go: I will guide thee with mine eye.", "r": "Psalm 32:8"}, {"t": "I am the vine, ye are the branches: He that abideth in me, and I in him, the same bringeth forth much fruit: for without me ye can do nothing.", "r": "John 15:5"}, {"t": "Looking unto Jesus the author and finisher of our faith; who for the joy that was set before him endured the cross, despising the shame, and is set down at the right hand of the throne of God.", "r": "Hebrews 12:2"}, {"t": "Being confident of this very thing, that he which hath begun a good work in you will perform it until the day of Jesus Christ:", "r": "Philippians 1:6"}, {"t": "What shall we then say to these things? If God be for us, who can be against us?", "r": "Romans 8:31"}, {"t": "Let all your things be done with charity.", "r": "1 Corinthians 16:14"}, {"t": "Then he said unto them, Go your way, eat the fat, and drink the sweet, and send portions unto them for whom nothing is prepared: for this day is holy unto our Lord: neither be ye sorry; for the joy of the LORD is your strength.", "r": "Nehemiah 8:10"}, {"t": "He hath shewed thee, O man, what is good; and what doth the LORD require of thee, but to do justly, and to love mercy, and to walk humbly with thy God?", "r": "Micah 6:8"}, {"t": "Delight thyself also in the LORD; and he shall give thee the desires of thine heart.", "r": "Psalm 37:4"}, {"t": "Let no man despise thy youth; but be thou an example of the believers, in word, in conversation, in charity, in spirit, in faith, in purity.", "r": "1 Timothy 4:12"}, {"t": "Now faith is the substance of things hoped for, the evidence of things not seen.", "r": "Hebrews 11:1"}, {"t": "Casting all your care upon him; for he careth for you.", "r": "1 Peter 5:7"}, {"t": "And if it seem evil unto you to serve the LORD, choose you this day whom ye will serve; whether the gods which your fathers served that were on the other side of the flood, or the gods of the Amorites, in whose land ye dwell: but as for me and my house, we will serve the LORD.", "r": "Joshua 24:15"}, {"t": "A friend loveth at all times, and a brother is born for adversity.", "r": "Proverbs 17:17"}, {"t": "Come unto me, all ye that labour and are heavy laden, and I will give you rest.", "r": "Matthew 11:28"}, {"t": "And be ye kind one to another, tenderhearted, forgiving one another, even as God for Christ’s sake hath forgiven you.", "r": "Ephesians 4:32"}, {"t": "Therefore, my beloved brethren, be ye stedfast, unmovable, always abounding in the work of the Lord, forasmuch as ye know that your labour is not in vain in the Lord.", "r": "1 Corinthians 15:58"}, {"t": "Thou wilt shew me the path of life: in thy presence is fulness of joy; at thy right hand there are pleasures for evermore.", "r": "Psalm 16:11"}, {"t": "When thou passest through the waters, I will be with thee; and through the rivers, they shall not overflow thee: when thou walkest through the fire, thou shalt not be burned; neither shall the flame kindle upon thee.", "r": "Isaiah 43:2"}, {"t": "Jesus Christ the same yesterday, and to day, and for ever.", "r": "Hebrews 13:8"}, {"t": "But ye shall receive power, after that the Holy Ghost is come upon you: and ye shall be witnesses unto me both in Jerusalem, and in all Judaea, and in Samaria, and unto the uttermost part of the earth.", "r": "Acts 1:8"}];
+
+// ---------- look: motion, count-up, tiles, countdown, verse ----------
+var TX = true; // animate the next render (first load and every tab switch)
+function reduceMotion() { try { return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } }
+var CU = {}; // last value shown per counter key, so 15-second poll refreshes don't re-run the count
+function cuFmt(el, v) { return el.getAttribute("data-cuf") === "n" ? naira(v) : String(Math.round(v)); }
+function countUp(root) {
+  var els = (root || document).querySelectorAll("[data-cu]"), rm = reduceMotion();
+  Array.prototype.forEach.call(els, function (el) {
+    var to = Number(el.getAttribute("data-cu")) || 0, key = el.getAttribute("data-cuk");
+    if (key && CU[key] === to) { el.textContent = cuFmt(el, to); return; }
+    if (key) CU[key] = to;
+    if (rm || to <= 0) { el.textContent = cuFmt(el, to); return; }
+    var t0 = null, dur = to > 20 ? 900 : 650;
+    el.textContent = cuFmt(el, 0);
+    function step(ts) {
+      if (t0 === null) t0 = ts;
+      var k = Math.min(1, (ts - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = cuFmt(el, k < 1 ? Math.floor(to * e) : to);
+      if (k < 1 && el.isConnected) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
+function cuNum(n, key) { n = Number(n) || 0; return '<span class="cu" data-cu="' + n + '"' + (key ? ' data-cuk="' + key + '"' : "") + ">" + n + "</span>"; }
+
+// tiles: one per tab the current role can see (same list as the tab bar)
+function tileInfo(id) {
+  var n = 0, cap = "", pill = "";
+  if (id === "notices") { n = (D.announcements || []).length; var pc = (D.announcements || []).filter(function (a) { return a.pinned; }).length; cap = pc ? pc + " pinned" : "Latest news"; pill = n ? cuNum(n) + " posted" : ""; if (pill) cap = ""; }
+  else if (id === "polls") { n = (D.polls_open || []).length; pill = n ? cuNum(n) + " open" : ""; cap = "Have your say"; }
+  else if (id === "plans") { var s = D.plans_sum || {}; pill = s.in_progress ? cuNum(s.in_progress) + " in progress" : (s.total ? cuNum(s.total) + " plan" + (s.total === 1 ? "" : "s") : ""); cap = "Youth department"; }
+  else if (id === "events") { n = (D.events || []).filter(function (e) { return e.date >= ME.today; }).length; pill = n ? cuNum(n) + " coming up" : ""; cap = "None coming up"; }
+  else if (id === "roster") { cap = rosterGroups().week.length ? "This week is set" : "Not set this week"; }
+  else if (id === "minutes") { n = (D.actions || []).filter(function (a) { return !a.done; }).length; pill = n ? cuNum(n) + " open action" + (n === 1 ? "" : "s") : ""; cap = "Meetings & decisions"; }
+  else if (id === "offering") cap = "Sunday records";
+  else if (id === "contrib") cap = "Who gave what";
+  else if (id === "expenses") cap = "Spending records";
+  else if (id === "exco") cap = "Meet the Exco";
+  else if (id === "jobs") { pill = JB.loaded && JB.rows.length ? cuNum(JB.rows.length) + " listed" : ""; cap = "Updated daily"; }
+  else if (id === "suggest") { n = isExco() ? (D.new_suggestions || 0) : 0; pill = n ? cuNum(n) + " new" : ""; cap = "Share an idea"; }
+  else if (id === "settings") cap = "Passwords & options";
+  return pill ? '<span class="tl-b" id="tlb-' + id + '">' + pill + "</span>" : '<span class="tl-c" id="tlb-' + id + '">' + esc(cap) + "</span>";
+}
+function tilesHTML() {
+  var t = visibleTabs().filter(function (x) { return x[0] !== "home"; });
+  return '<nav class="tiles" aria-label="Youth Cave sections">' + t.map(function (x, i) {
+    return '<button type="button" class="tile" data-go="' + x[0] + '" style="--j:' + i + '"><span class="tl-i">' + (TICON[x[0]] || "") + '</span><span class="tl-n' + (x[1].length > 12 ? " lg" : "") + '">' + x[1] + "</span>" + tileInfo(x[0]) + "</button>";
+  }).join("") + "</nav>";
+}
+function homeJobsCount() {
+  if (JB.loaded) return;
+  api("api/jobs").then(function (r) {
+    if (!r || !r.ok) return;
+    if (!JB.loaded) JB = { rows: r.rows || [], updated: r.updated || 0, loaded: true };
+    var el = $("tlb-jobs"); if (cur !== "home" || !el || !JB.rows.length) return;
+    var w = document.createElement("span"); w.innerHTML = tileInfo("jobs"); var nb = w.firstChild;
+    el.parentNode.replaceChild(nb, el); countUp(nb);
+  }).catch(function () {});
+}
+
+// countdown: soonest upcoming dated announcement or event (Lagos time)
+var CDN = { timer: 0, item: null, state: "" };
+function cdItems() {
+  var now = Date.now(), out = [];
+  (D.announcements || []).forEach(function (a) {
+    if (!a.ev_date || !a.ev_time) return;
+    var s = lagosUtc(a.ev_date, a.ev_time), e = a.ev_end && a.ev_end > a.ev_time ? lagosUtc(a.ev_date, a.ev_end) : s + 3600000;
+    out.push({ kind: "announcement", x: a, title: a.title, date: a.ev_date, time: a.ev_time, endT: a.ev_end && a.ev_end > a.ev_time ? a.ev_end : "", loc: a.ev_loc || "", start: s, end: e });
+  });
+  (D.events || []).forEach(function (ev) {
+    if (!ev.date) return;
+    var s = lagosUtc(ev.date, ev.time || "00:00"), e = ev.time ? s + 3600000 : s + 86400000;
+    out.push({ kind: "event", x: ev, title: ev.title, date: ev.date, time: ev.time || "", endT: "", loc: ev.venue || "", start: s, end: e });
+  });
+  return out.filter(function (c) { return c.end > now; }).sort(function (a, b) { return a.start - b.start; });
+}
+function cdState(c) { return !c ? "" : (Date.now() >= c.start ? "now" : "soon"); }
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+function cdHTML() {
+  var c = cdItems()[0]; CDN.item = c || null; CDN.state = cdState(c);
+  if (!c) return '<section class="cd" id="cdCard" hidden></section>';
+  var when = fdate(c.date, true) + (c.time ? ", " + ftime(c.time) : "") + (c.endT ? " to " + ftime(c.endT) : "");
+  var h = '<section class="cd" id="cdCard" aria-label="Next event countdown"><div class="cd-hd"><span class="cd-l">' + (CDN.state === "now" ? "Happening now" : "Next event") + '</span><h3 class="cd-t">' + esc(c.title) + '</h3><p class="cd-w">' + esc(when) + (c.loc ? " &middot; " + esc(c.loc) : "") + "</p></div>";
+  if (CDN.state === "now") h += '<p class="cd-now"><span class="cd-dot" aria-hidden="true"></span>Happening now</p>';
+  else h += '<div class="cd-bx" role="timer" aria-live="off">' + [["cdD", "days"], ["cdH", "hrs"], ["cdM", "mins"], ["cdS", "secs"]].map(function (u) { return '<div><b id="' + u[0] + '">00</b><small>' + u[1] + "</small></div>"; }).join("") + "</div>";
+  h += '<div class="cd-ft">' + remindBtn(c.kind, c.x) + '<button type="button" class="btn ghost sm cd-more" data-go="' + (c.kind === "announcement" ? "notices" : "events") + '">Details</button></div>';
+  return h + "</section>";
+}
+function cdTick() {
+  var el = $("cdCard"); if (!el) { clearInterval(CDN.timer); CDN.timer = 0; return; }
+  var c = CDN.item;
+  if (c && Date.now() >= c.end || cdState(c) !== CDN.state) { // started or ended: redraw the card (rolls to the next item)
+    var w = document.createElement("div"); w.innerHTML = cdHTML(); el.parentNode.replaceChild(w.firstChild, el); el = $("cdCard"); c = CDN.item;
+    if (!c) return;
+  }
+  if (!c || CDN.state !== "soon") return;
+  var ms = Math.max(0, c.start - Date.now()), s = Math.floor(ms / 1000);
+  var d = Math.floor(s / 86400), hh = Math.floor(s % 86400 / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
+  var v = [["cdD", String(d)], ["cdH", pad2(hh)], ["cdM", pad2(mm)], ["cdS", pad2(ss)]];
+  v.forEach(function (p) { var b = $(p[0]); if (b && b.textContent !== p[1]) b.textContent = p[1]; });
+}
+function startCountdown() {
+  clearInterval(CDN.timer); CDN.timer = 0;
+  if (!$("cdCard")) return;
+  cdTick(); CDN.timer = setInterval(cdTick, 1000);
+}
+
+// verse of the week (changes every Monday, ISO week of the Lagos date)
+function lagosToday() { return ME.today || new Date(Date.now() + 3600000).toISOString().slice(0, 10); }
+function weekVerse() { var w = isoWeekN(lagosToday()); return VW[(w - 1) % VW.length]; }
+function isoWeekN(ymd) {
+  var d = pdate(ymd), day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day + 3); // Thursday of this week
+  var y0 = Date.UTC(d.getUTCFullYear(), 0, 1);
+  return 1 + Math.floor((d - y0) / 86400000 / 7);
+}
+function verseHTML() {
+  var v = weekVerse(); if (!v) return "";
+  return '<section class="vw" aria-label="Verse of the week"><span class="vw-l">Verse of the week</span><blockquote class="vw-t">\u201C' + esc(v.t) + '\u201D</blockquote><div class="vw-f"><p class="vw-r">' + esc(v.r) + ' <span>KJV</span></p><button type="button" class="btn ghost sm vw-sh" id="vwShare">Share</button></div></section>';
+}
+function copyText(t) {
+  function fb() {
+    var ta = document.createElement("textarea"); ta.value = t; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "0"; ta.style.left = "0"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select(); try { ta.setSelectionRange(0, t.length); } catch (e) {}
+    var ok = false; try { ok = document.execCommand("copy"); } catch (e2) {}
+    document.body.removeChild(ta); return ok;
+  }
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t).then(function () { return true; }, function () { return fb(); });
+  return Promise.resolve(fb());
+}
+document.addEventListener("click", function (e) {
+  var b = e.target.closest && e.target.closest("#vwShare"); if (!b) return;
+  var v = weekVerse(); if (!v) return;
+  copyText("\u201C" + v.t + "\u201D\n" + v.r + " (KJV)\n\nRLW Youth Cave: verse of the week").then(function (ok) { toast(ok ? "Verse copied. Paste it anywhere to share." : "Could not copy. Press and hold the verse to copy it."); });
+});
+function animateIn(m) {
+  m.classList.remove("tx", "stg");
+  if (!TX) return; TX = false;
+  if (reduceMotion()) return;
+  void m.offsetWidth;
+  if (cur === "home") {
+    Array.prototype.forEach.call(m.children, function (el, i) { el.style.setProperty("--i", Math.min(i, 8)); });
+    m.classList.add("stg");
+  } else m.classList.add("tx");
+}
+
 function render() {
   var m = $("main");
+  CU = {};
   m.innerHTML = (R[cur] || R.home)();
   hydrateFiles(m);
   kickHeroVideo();
+  animateIn(m);
+  startCountdown();
+  countUp(m);
+  if (cur === "home") homeJobsCount();
   if (cur === "contrib") loadContrib();
   if (cur === "expenses") loadExpenses();
   if (cur === "suggest" && isExco()) loadSuggestions();
@@ -340,7 +494,7 @@ function pollCard(p) {
   var st = p.open ? (p.closes_at ? "Closes " + pollWhen(p.closes_at) : "Open") : "Closed";
   var h = '<article class="card pl' + (p.pinned ? " pinned" : "") + (p.open ? "" : " closed") + '" id="poll-' + p.id + '">';
   h += (p.pinned ? '<span class="pin">Pinned</span>' : "") + '<h4 class="pl-q">' + esc(p.question) + "</h4>";
-  h += '<p class="meta"><span class="pl-st' + (p.open ? " open" : "") + '">' + st + "</span> &middot; " + p.total + " vote" + (p.total === 1 ? "" : "s") + " &middot; " + (p.multi ? "Choose one or more" : "Choose one") + "</p>";
+  h += '<p class="meta"><span class="pl-st' + (p.open ? " open" : "") + '">' + st + "</span> &middot; " + cuNum(p.total, "pt" + p.id) + " vote" + (p.total === 1 ? "" : "s") + " &middot; " + (p.multi ? "Choose one or more" : "Choose one") + "</p>";
   if (voting) {
     h += pollVoteForm(p) + (voted ? '<button type="button" class="btn ghost sm pl-cx" data-pcancel="' + p.id + '">Keep my vote</button>' : "");
     if (p.results) h += '<details class="pl-ex"' + (PL.peek[p.id] === 1 || (isExco() && PL.peek[p.id] !== 0) ? " open" : "") + ' data-ppeek="' + p.id + '"><summary>' + (isExco() ? "Live results" : "See results so far") + "</summary>" + pollBars(p) + "</details>";
@@ -363,7 +517,7 @@ function drawPolls() {
   shut.sort(function (a, b) { return b.created_at - a.created_at; });
   var h = open.length ? open.map(pollCard).join("") : '<p class="empty">No open polls right now.' + (isExco() ? " Tap New poll to ask the youth a question." : " Check back soon.") + "</p>";
   if (shut.length) h += '<details class="past"' + (PL.pastOpen ? " open" : "") + ' id="plPast"><summary>Closed polls (' + shut.length + ")</summary>" + shut.map(pollCard).join("") + "</details>";
-  el.innerHTML = h;
+  el.innerHTML = h; countUp(el);
   var me = $("plMe"), nm = voterName();
   if (me) me.innerHTML = nm ? "Voting as <b>" + esc(nm) + '</b> &middot; <button type="button" class="lnk" id="plName">Change name</button>' : "";
 }
@@ -627,7 +781,7 @@ $("main").addEventListener("change", function (e) {
 function planHomeCard() {
   var s = D.plans_sum || {}; if (!s.total) return "";
   return '<button type="button" class="pl-home pn-home" data-go="plans"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 9l1.6 1.6L12.5 7.7M8 15l1.6 1.6 2.9-2.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 9.5H17M14.5 15.5H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
-    '<span class="pl-ht"><small>Youth department</small><b>Youth plans: ' + (s.in_progress || 0) + " in progress</b><small>" + s.total + " plan" + (s.total === 1 ? "" : "s") + " in total</small></span>" +
+    '<span class="pl-ht"><small>Youth department</small><b>Youth plans: ' + cuNum(s.in_progress || 0) + " in progress</b><small>" + cuNum(s.total) + " plan" + (s.total === 1 ? "" : "s") + " in total</small></span>" +
     '<span class="pl-go">View plans</span></button>';
 }
 
@@ -705,12 +859,11 @@ R.home = function () {
   var open = (D.actions || []).filter(function (a) { return !a.done; }).length;
   var h = '<section class="hero hero-vid"><video class="hero-bg" autoplay muted loop playsinline preload="auto" poster="bg/youth_bg_poster.jpg" aria-hidden="true"><source src="bg/youth_bg.mp4" type="video/mp4"></video><div class="hero-ov"></div><div class="hero-in"><p class="eyebrow">Welcome to the</p><h2>Youth Cave</h2><p>' + fdate(ME.today, true) + ".<br>Everything for our youth in one place.</p></div></section>";
   h += '<a class="wa-join" href="https://chat.whatsapp.com/GZ4hiqMFYqNL0cRPoIWazG" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.2-.3-.2-.5-.3z"/></svg><span><b>Join the Youth WhatsApp group</b><small>Chat, updates and reminders with everyone</small></span><span class="wa-go">Join</span></a>';
+  h += tilesHTML();
+  h += cdHTML();
   h += pollHomeCard();
   h += planHomeCard();
-  h += '<div class="qk"><button type="button" data-go="events">Events<small>' + up.length + " coming up</small></button>" +
-    '<button type="button" data-go="roster">Duty roster<small>' + (g.week.length ? "This week is set" : "Not set for this week") + "</small></button>" +
-    '<button type="button" data-go="minutes">Minutes<small>' + open + " open action item" + (open === 1 ? "" : "s") + "</small></button>" +
-    '<button type="button" data-go="suggest">Suggestion box<small>Share an idea anonymously</small></button></div>';
+  h += verseHTML();
   h += '<div class="grid2"><div><h3>' + (pinned.length ? "Pinned notices" : "Latest announcements") + "</h3>" + (latest.length ? latest.map(announcementCard).join("") : '<p class="empty">No announcements yet.</p>') + "</div>";
   h += "<div><h3>Next events</h3>" + (up.length ? up.map(eventCard).join("") : '<p class="empty">No upcoming events yet.</p>') + "</div></div>";
   h += "<h3>This week's duties</h3>" + (g.week.length ? g.week.map(function (d) { return rosterDayCard(d, g.by[d], true); }).join("") : '<p class="empty">The roster for this week has not been added yet.</p>');
