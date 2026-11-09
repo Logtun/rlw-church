@@ -114,7 +114,7 @@ function load() {
   });
 }
 // Welcome video: plays all clips one after the other; the next starts as soon as one finishes, then repeats.
-var BG_VIDS = ["youth_bg", "youth_bg_2", "youth_bg_3", "youth_bg_4", "youth_bg_1"];
+var BG_VIDS = ["youth_bg", "youth_bg_2", "youth_bg_3", "youth_bg_4", "youth_bg_1", "youth_bg_5"];
 var BG_I = Math.floor(Date.now() / 86400000) % BG_VIDS.length;
 function bgPick() { return BG_VIDS[BG_I]; }
 function bgNext(v) {
