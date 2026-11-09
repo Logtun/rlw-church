@@ -97,6 +97,7 @@ async function init(env) {
 async function setting(env, k, dflt) { const r = await env.DB.prepare("SELECT v FROM settings WHERE k = ?").bind(k).first(); return r ? r.v : dflt; }
 async function setSetting(env, k, v) { await env.DB.prepare("INSERT INTO settings (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").bind(k, v).run(); }
 async function moneyMode(env) { return (await setting(env, "money", "all")) === "exco" ? "exco" : "all"; }
+async function voiceOn(env) { return (await setting(env, "welcome_voice", "on")) !== "off"; }
 
 // ---------- auth ----------
 async function pwMatches(env, role, pw) {
@@ -123,7 +124,7 @@ async function login(req, env) {
   const tok = payload + "." + await hmac(payload);
   await env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(now).run();
   await env.DB.prepare("INSERT INTO sessions (token_hash, role, created_at, expires_at) VALUES (?,?,?,?)").bind(await sha(tok), role, now, now + SESSION_MS).run();
-  return J({ ok: true, token: tok, role, money: await moneyMode(env) });
+  return J({ ok: true, token: tok, role, money: await moneyMode(env), voice: await voiceOn(env) });
 }
 async function session(req, env) {
   const tok = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
@@ -743,7 +744,7 @@ async function api(req, env, path, u) {
   if (path === "/api/logout" && req.method === "POST") { await env.DB.prepare("DELETE FROM sessions WHERE token_hash = ?").bind(ses.th).run(); return J({ ok: true }); }
 
   if (path === "/api/all" && req.method === "GET") {
-    const out = { ok: true, role: ses.role, money, today: lagosDate(Date.now()), base: pubBase(req) };
+    const out = { ok: true, role: ses.role, money, voice: await voiceOn(env), today: lagosDate(Date.now()), base: pubBase(req) };
     for (const n of ["events", "announcements", "minutes", "actions", "roster", "exco"]) out[n] = await listSection(env, n);
     for (const a of out.announcements) if (a.ev_date && a.ev_time) a.ics_k = await icsKey("announcement", a.id);
     for (const e of out.events) if (e.date && e.time) e.ics_k = await icsKey("event", e.id);
@@ -839,9 +840,15 @@ async function api(req, env, path, u) {
     for (const t of [...Object.keys(SECTIONS), "contrib", "suggestions"]) { const r = await env.DB.prepare(`SELECT COUNT(*) AS n FROM ${t}`).first(); c[t] = r ? r.n : 0; }
     let files = null;
     if (env.FILES) { files = 0; let cursor; do { const l = await env.FILES.list({ prefix: "up/", cursor }); files += l.objects.length; cursor = l.truncated ? l.cursor : null; } while (cursor); }
-    return J({ ok: true, money, base: pubBase(req), counts: c, files });
+    return J({ ok: true, money, voice: await voiceOn(env), base: pubBase(req), counts: c, files });
   }
   if (path === "/api/settings" && req.method === "POST") {
+    if (Object.prototype.hasOwnProperty.call(body, "voice") && body.money === undefined) {
+      if (!exco) return J({ ok: false, error: "Only Exco can change this." }, 403);
+      if (typeof body.voice !== "boolean") return J({ ok: false, error: "Pick on or off." }, 400);
+      await setSetting(env, "welcome_voice", body.voice ? "on" : "off");
+      return J({ ok: true, voice: body.voice });
+    }
     if (body.money !== "exco" && body.money !== "all") return J({ ok: false, error: "Pick who can see the money pages." }, 400);
     await setSetting(env, "money", body.money);
     return J({ ok: true, money: body.money });

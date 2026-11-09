@@ -38,21 +38,46 @@ function api(path, body, raw) {
 
 // ---------- login ----------
 $("showpw").addEventListener("change", function () { $("pw").type = this.checked ? "text" : "password"; });
+// Welcome voice: plays once after each successful password login (not on reloads, not on failed tries).
+// Primed silently inside the tap so iPhone allows the later play; Exco can switch it off in Settings.
+var WV = { a: null, want: false };
+function wvEl() {
+  if (!WV.a) { try { var a = new Audio("bg/welcome.mp3?v=1"); a.preload = "auto"; a.load(); WV.a = a; } catch (e) { WV.a = null; } }
+  return WV.a;
+}
+function wvPrime() {
+  var a = wvEl(); if (!a) return; WV.want = false;
+  try {
+    a.muted = true; var p = a.play();
+    if (p && p.then) p.then(function () { if (!WV.want) { a.pause(); try { a.currentTime = 0; } catch (e) {} a.muted = false; } }, function () { a.muted = false; });
+  } catch (e) { a.muted = false; }
+}
+function wvStop() { var a = WV.a; WV.want = false; if (!a) return; try { a.pause(); a.currentTime = 0; a.muted = false; } catch (e) {} }
+function wvPlay() {
+  var a = wvEl(); if (!a) return; WV.want = true;
+  try {
+    a.muted = false; a.volume = 0.9; try { a.currentTime = 0; } catch (e) {}
+    var p = a.play(); if (p && p.catch) p.catch(function () {});
+  } catch (e) {}
+}
 $("lform").addEventListener("submit", function (e) {
   e.preventDefault();
   var b = $("lbtn"); b.disabled = true; $("lerr").textContent = "";
+  wvPrime();
   fetch("api/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password: $("pw").value }) })
     .then(function (r) { return r.json(); })
     .then(function (r) {
       b.disabled = false;
-      if (!r.ok) { $("lerr").textContent = r.error || "Could not sign in."; return; }
+      if (!r.ok) { wvStop(); $("lerr").textContent = r.error || "Could not sign in."; return; }
       token = r.token; try { localStorage.setItem(TK, token); } catch (e2) {}
+      ME.voice = r.voice !== false;
+      if (ME.voice) wvPlay(); else wvStop();
       $("pw").value = ""; cur = "home"; start();
-    }).catch(function () { b.disabled = false; $("lerr").textContent = "Network problem. Please try again."; });
+    }).catch(function () { wvStop(); b.disabled = false; $("lerr").textContent = "Network problem. Please try again."; });
 });
 function signOut(expired) {
   token = null; try { localStorage.removeItem(TK); } catch (e) {}
-  $("app").hidden = true; $("login").hidden = false; closeModal();
+  $("app").hidden = true; $("login").hidden = false; closeModal(); wvEl();
   if (expired) $("lerr").textContent = "Please sign in again.";
 }
 $("logout").addEventListener("click", function () { api("api/logout", {}).catch(function () {}); signOut(false); });
@@ -80,7 +105,7 @@ function go(t) {
 function load() {
   return api("api/all?voter=" + voterId()).then(function (r) {
     if (!r.ok) { $("main").innerHTML = '<p class="err">' + esc(r.error) + "</p>"; return; }
-    D = r; ME.role = r.role; ME.money = r.money; ME.today = r.today; ME.base = r.base;
+    D = r; ME.role = r.role; ME.money = r.money; ME.today = r.today; ME.base = r.base; ME.voice = r.voice !== false;
     $("roleLbl").textContent = isExco() ? "Exco" : "Member";
     if (!visibleTabs().some(function (t) { return t[0] === cur; })) cur = "home";
     drawTabs(); render();
@@ -1170,6 +1195,7 @@ $("main").addEventListener("click", function (e) {
 R.settings = function () {
   return head("Exco settings", "Only Exco can see this page.") +
     '<div class="card"><h4>Money pages (offering, contributions and expenses) visible to</h4><form id="stMoney"><label class="radio"><input type="radio" name="money" value="exco"' + (ME.money === "exco" ? " checked" : "") + '><span><b>Exco only</b><br><span class="meta">Members will not see the Offering, Contributions and Expenses pages.</span></span></label><label class="radio"><input type="radio" name="money" value="all"' + (ME.money === "all" ? " checked" : "") + '><span><b>All youth (view only)</b><br><span class="meta">Members can see them but cannot change anything.</span></span></label><button class="btn pri" type="submit">Save</button> <span id="stMsg" class="ok"></span></form></div>' +
+    '<div class="card"><h4>Welcome voice</h4><label class="radio"><input type="checkbox" id="stVoice"' + (ME.voice !== false ? " checked" : "") + '><span><b>Play "Welcome to the Youth Cave" after login</b><br><span class="meta">A short welcome voice plays once each time someone signs in with a password. It does not play when the page is reopened.</span></span></label><span id="stVMsg" class="ok"></span></div>' +
     pwCard("youth", "Youth password", "The password members use. Everyone signed in with the old one will need the new one.") +
     pwCard("exco", "Exco password", "The password for Exco. Other Exco members signed in with the old one will need the new one.") +
     '<div class="card"><h4>Link to share</h4><p class="body" id="stLink"></p><h4 style="margin-top:14px">What is stored</h4><p class="meta" id="stCounts">Loading...</p></div>';
@@ -1202,6 +1228,16 @@ document.addEventListener("submit", function (e) {
       $("pw_" + w).value = ""; $("pw2_" + w).value = ""; m.className = "ok"; m.textContent = "Changed. Share the new password with " + (w === "exco" ? "the Exco." : "the youth.");
     });
   }
+});
+
+document.addEventListener("change", function (e) {
+  var c = e.target; if (!c || c.id !== "stVoice") return;
+  var on = !!c.checked; c.disabled = true; $("stVMsg").textContent = "";
+  api("api/settings", { voice: on }).then(function (r) {
+    c.disabled = false;
+    if (!r.ok) { c.checked = !on; toast(r.error || "Could not save."); return; }
+    ME.voice = r.voice !== false; $("stVMsg").textContent = ME.voice ? "On" : "Off"; toast(ME.voice ? "Welcome voice on" : "Welcome voice off");
+  }).catch(function () { c.disabled = false; c.checked = !on; });
 });
 
 // ---------- jobs & opportunities ----------
@@ -1378,5 +1414,5 @@ $("main").addEventListener("click", function (e) {
 });
 
 // ---------- go ----------
-if (token) start(); else $("login").hidden = false;
+if (token) start(); else { $("login").hidden = false; wvEl(); }
 })();
