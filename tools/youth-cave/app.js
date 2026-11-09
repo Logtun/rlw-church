@@ -40,7 +40,7 @@ function api(path, body, raw) {
 $("showpw").addEventListener("change", function () { $("pw").type = this.checked ? "text" : "password"; });
 // Welcome voice: plays once after each successful password login (not on reloads, not on failed tries).
 // Primed silently inside the tap so iPhone allows the later play; Exco can switch it off in Settings.
-var WV = { a: null, want: false };
+var WV = { a: null, want: false, pend: false };
 function wvEl() {
   if (!WV.a) { try { var a = new Audio("bg/welcome.mp3?v=1"); a.preload = "auto"; a.load(); WV.a = a; } catch (e) { WV.a = null; } }
   return WV.a;
@@ -71,7 +71,7 @@ $("lform").addEventListener("submit", function (e) {
       if (!r.ok) { wvStop(); $("lerr").textContent = r.error || "Could not sign in."; return; }
       token = r.token; try { localStorage.setItem(TK, token); } catch (e2) {}
       ME.voice = r.voice !== false;
-      if (ME.voice) wvPlay(); else wvStop();
+      if (ME.voice) WV.pend = true; else wvStop();
       $("pw").value = ""; cur = "home"; start();
     }).catch(function () { wvStop(); b.disabled = false; $("lerr").textContent = "Network problem. Please try again."; });
 });
@@ -109,6 +109,8 @@ function load() {
     $("roleLbl").textContent = isExco() ? "Exco" : "Member";
     if (!visibleTabs().some(function (t) { return t[0] === cur; })) cur = "home";
     drawTabs(); render();
+    // Welcome voice waits until the page content has loaded and drawn.
+    if (WV.pend) { WV.pend = false; if (ME.voice) setTimeout(function () { requestAnimationFrame(function () { wvPlay(); }); }, 400); else wvStop(); }
   });
 }
 // Welcome video rotates daily (Lagos date): one per day, repeating. Day 0 = 2026-11-08.
