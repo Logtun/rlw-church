@@ -1366,7 +1366,8 @@ function openShare(kind, ref, isNew) {
     '<div class="mf-actions"><button type="button" class="btn ghost" id="shCopy">Copy message</button><button type="button" class="btn ghost" id="shNo">Not now</button></div></div>';
   openModal("Share with the youth group?", html, null);
   var ta = $("shTxt"), wa = $("shWa");
-  ta.addEventListener("input", function () { wa.href = waHref(ta.value); });
+  function fit() { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight + 2, Math.round(window.innerHeight * 0.5)) + "px"; }
+  ta.addEventListener("input", function () { wa.href = waHref(ta.value); fit(); }); fit();
   wa.addEventListener("click", function () { setTimeout(closeModal, 400); });
   $("shCopy").addEventListener("click", function () { copyText(ta.value).then(function (ok) { toast(ok ? "Message copied. Paste it in the Youth group." : "Could not copy. Press and hold the text to copy it."); }); });
   $("shNo").addEventListener("click", closeModal);
