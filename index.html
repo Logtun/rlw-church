@@ -245,7 +245,7 @@ function get(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)thr
 get("/api/sermons").catch(function(){return get("https://rlw-church.sites.tab.bot/api/sermons")}).then(function(j){if(j.videos.length)render(j.videos);else fallback()}).catch(fallback);
 })();
 </script><script>document.querySelectorAll('.gcopy').forEach(function(b){b.addEventListener('click',function(){var n=b.getAttribute('data-no'),s=b.querySelector('span');function done(){b.classList.add('ok');s.textContent='Copied: '+n;setTimeout(function(){b.classList.remove('ok');s.textContent='Copy account number'},2500)}if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(n).then(done,fb)}else fb();function fb(){var t=document.createElement('textarea');t.value=n;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t);done()}})})</script>
-<script id="pastorrot">(function(){var P=["/pastor2.jpg?v=1","/pastor3.jpg?v=1"];var el=document.getElementById("pimg");if(!el||P.length<2)return;
+<script id="pastorrot">(function(){var P=["/pastor2.jpg?v=1","/pastor3.jpg?v=1","/pastor4.jpg?v=1"];var el=document.getElementById("pimg");if(!el||P.length<2)return;
 P.forEach(function(s){var i=new Image();i.src=s;});
 function idx(){return Math.floor(Date.now()/3600000)%P.length;}
 function set(){var s=P[idx()];if(el.getAttribute("src")===s)return;el.style.transition="opacity .6s";el.style.opacity="0";setTimeout(function(){el.setAttribute("src",s);el.style.opacity="1";},600);}
