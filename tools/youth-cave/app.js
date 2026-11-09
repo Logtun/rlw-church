@@ -113,30 +113,23 @@ function load() {
     if (WV.pend) { WV.pend = false; if (ME.voice) setTimeout(function () { requestAnimationFrame(function () { wvPlay(); }); }, 400); else wvStop(); }
   });
 }
-// Welcome video rotates every minute (clock-based, so everyone sees the same one), cycling through all clips endlessly.
+// Welcome video: plays all clips one after the other; the next starts as soon as one finishes, then repeats.
 var BG_VIDS = ["youth_bg", "youth_bg_2", "youth_bg_3", "youth_bg_4", "youth_bg_1"];
-function bgPick() {
-  var n = Math.floor(Date.now() / 60000);
-  return BG_VIDS[((n % BG_VIDS.length) + BG_VIDS.length) % BG_VIDS.length];
-}
-var BG_TIMER = null;
-function bgTick() {
+var BG_I = Math.floor(Date.now() / 86400000) % BG_VIDS.length;
+function bgPick() { return BG_VIDS[BG_I]; }
+function bgNext() {
   var v = document.querySelector("video.hero-bg");
   if (!v) return;
-  var want = bgPick();
-  if (v.getAttribute("data-bg") === want) return;
+  BG_I = (BG_I + 1) % BG_VIDS.length;
+  var want = BG_VIDS[BG_I];
   v.setAttribute("data-bg", want);
-  v.style.opacity = "0";
-  setTimeout(function () {
-    v.poster = "bg/" + want + "_poster.jpg";
-    v.src = "bg/" + want + ".mp4";
-    try { v.load(); var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
-    v.style.opacity = "";
-  }, 400);
+  v.poster = "bg/" + want + "_poster.jpg";
+  v.src = "bg/" + want + ".mp4";
+  try { v.load(); var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
 }
 function bgStart() {
-  if (BG_TIMER) return;
-  BG_TIMER = setInterval(bgTick, 5000);
+  if (window.BG_ON) return; window.BG_ON = true;
+  document.addEventListener("ended", function (e) { if (e.target && e.target.classList && e.target.classList.contains("hero-bg")) bgNext(); }, true);
 }
 function start() {
   $("login").hidden = true; $("app").hidden = false;
@@ -334,7 +327,7 @@ function editBtns(sec, id) { return isExco() ? '<div class="acts">' + (sec === "
 var R = {};
 function kickHeroVideo() {
   var v = document.querySelector(".hero-bg"); if (!v) return;
-  v.muted = true; v.defaultMuted = true; v.playsInline = true; v.loop = true;
+  v.muted = true; v.defaultMuted = true; v.playsInline = true; v.loop = false;
   v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.setAttribute("webkit-playsinline", ""); v.removeAttribute("controls");
   try { var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
 }
@@ -952,7 +945,7 @@ R.home = function () {
   var up = (D.events || []).filter(function (e) { return e.date >= ME.today; }).slice(0, 3);
   var g = rosterGroups();
   var open = (D.actions || []).filter(function (a) { return !a.done; }).length;
-  var h = '<section class="hero hero-vid"><video class="hero-bg" autoplay muted loop playsinline preload="auto" data-bg="' + bgPick() + '" style="transition:opacity .4s" poster="bg/' + bgPick() + '_poster.jpg" src="bg/' + bgPick() + '.mp4" aria-hidden="true"></video><div class="hero-ov"></div><div class="hero-in"><p class="eyebrow">Welcome to the</p><h2>Youth Cave</h2><p>' + fdate(ME.today, true) + ".<br>Everything for our youth in one place.</p></div></section>";
+  var h = '<section class="hero hero-vid"><video class="hero-bg" autoplay muted playsinline preload="auto" data-bg="' + bgPick() + '" poster="bg/' + bgPick() + '_poster.jpg" src="bg/' + bgPick() + '.mp4" aria-hidden="true"></video><div class="hero-ov"></div><div class="hero-in"><p class="eyebrow">Welcome to the</p><h2>Youth Cave</h2><p>' + fdate(ME.today, true) + ".<br>Everything for our youth in one place.</p></div></section>";
   h += '<a class="wa-join" href="https://chat.whatsapp.com/GZ4hiqMFYqNL0cRPoIWazG" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.2-.3-.2-.5-.3z"/></svg><span><b>Join the Youth WhatsApp group</b><small>Chat, updates and reminders with everyone</small></span><span class="wa-go">Join</span></a>';
   h += tilesHTML();
   h += cdHTML();
