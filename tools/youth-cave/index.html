@@ -10,7 +10,7 @@
 <script>(function(){var r=document.documentElement,t;try{t=localStorage.getItem('rlw-theme')}catch(e){}if(t!=='dark'&&t!=='light'){try{t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}r.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m){m.setAttribute('data-light',m.getAttribute('content'));m.setAttribute('content',m.getAttribute('data-dark')||'#0E1116')}}})()</script>
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="app.css?v=20">
+<link rel="stylesheet" href="app.css?v=22">
 <link rel="stylesheet" href="theme.css?v=1">
 </head>
 <body>
@@ -57,6 +57,6 @@
 </div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="theme.js?v=1"></script>
-<script src="app.js?v=30"></script>
+<script src="app.js?v=32"></script>
 </body>
 </html>

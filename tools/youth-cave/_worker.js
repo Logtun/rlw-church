@@ -161,6 +161,44 @@ function parseField(type, v) {
 const LABELS = { date: "date", title: "title", amount: "amount", name: "name", role: "role", what: "action item", duty: "duty", minute_id: "meeting", item: "item", category: "category" };
 
 // Exco only: save the display order of the Exco cards. Only the sort column changes; names and details are untouched.
+// Province remittance: a share of each month's youth offering goes to the province.
+// Stored in the existing settings table: remit_rate ("30"), remit_exempt (JSON list of offering ids that are not offerings, e.g. a handover balance) and remit_sent (JSON {"YYYY-MM": {d, amt, total, rate, at}}).
+async function remitData(env) {
+  const rate = parseFloat(await setting(env, "remit_rate", "30"));
+  let sent = {}; try { sent = JSON.parse(await setting(env, "remit_sent", "{}")) || {}; } catch (e) { sent = {}; }
+  let exempt = []; try { exempt = (JSON.parse(await setting(env, "remit_exempt", "[]")) || []).map(Number).filter(n => n > 0); } catch (e) { exempt = []; }
+  return { rate: isFinite(rate) ? rate : 30, sent, exempt };
+}
+async function remitSave(env, body) {
+  if (Object.prototype.hasOwnProperty.call(body, "rate")) {
+    const r = Math.round(parseFloat(body.rate) * 100) / 100;
+    if (!isFinite(r) || r < 0 || r > 100) return J({ ok: false, error: "Enter a rate between 0 and 100." }, 400);
+    await setSetting(env, "remit_rate", String(r));
+    return J({ ok: true, remit: await remitData(env) });
+  }
+  const cur = await remitData(env);
+  if (Object.prototype.hasOwnProperty.call(body, "exempt_id")) {
+    const id = parseInt(body.exempt_id, 10) || 0;
+    const row = id ? await env.DB.prepare("SELECT id FROM offerings WHERE id = ?").bind(id).first() : null;
+    if (!row) return J({ ok: false, error: "That record no longer exists. Refresh the page." }, 404);
+    const set = new Set(cur.exempt); if (body.exempt) set.add(id); else set.delete(id);
+    cur.exempt = [...set];
+    await setSetting(env, "remit_exempt", JSON.stringify(cur.exempt));
+    return J({ ok: true, remit: cur });
+  }
+  const ym = String(body.month || "");
+  if (!isMonth(ym)) return J({ ok: false, error: "Pick a month." }, 400);
+  if (body.sent === false) { delete cur.sent[ym]; }
+  else {
+    const d = String(body.date || "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || isNaN(Date.parse(d + "T00:00:00Z"))) return J({ ok: false, error: "Pick the date it was sent." }, 400);
+    const { results: mrows } = await env.DB.prepare("SELECT id, amount FROM offerings WHERE substr(date, 1, 7) = ?").bind(ym).all();
+    const total = Math.round(mrows.filter(r => !cur.exempt.includes(Number(r.id))).reduce((a, r) => a + (Number(r.amount) || 0), 0) * 100) / 100;
+    cur.sent[ym] = { d, total, rate: cur.rate, amt: Math.round(total * cur.rate) / 100, at: Date.now() };
+  }
+  await setSetting(env, "remit_sent", JSON.stringify(cur.sent));
+  return J({ ok: true, remit: cur });
+}
 async function excoOrder(env, body) {
   const ids = Array.isArray(body.ids) ? body.ids.map(x => parseInt(x, 10) || 0) : [];
   const { results } = await env.DB.prepare("SELECT id FROM exco").all();
@@ -757,7 +795,7 @@ async function api(req, env, path, u) {
     for (const n of ["events", "announcements", "minutes", "actions", "roster", "exco"]) out[n] = await listSection(env, n);
     for (const a of out.announcements) if (a.ev_date && a.ev_time) a.ics_k = await icsKey("announcement", a.id);
     for (const e of out.events) if (e.date && e.time) e.ics_k = await icsKey("event", e.id);
-    if (canMoney) out.offerings = await listSection(env, "offerings");
+    if (canMoney) { out.offerings = await listSection(env, "offerings"); out.remit = await remitData(env); }
     if (exco) { const r = await env.DB.prepare("SELECT COUNT(*) AS n FROM suggestions WHERE status = 'new'").first(); out.new_suggestions = r ? r.n : 0; }
     try { await initPlans(env); const r = await env.DB.prepare("SELECT COUNT(*) AS n, SUM(CASE WHEN status = 'In progress' THEN 1 ELSE 0 END) AS ip FROM plans").first(); out.plans_sum = { total: (r && r.n) || 0, in_progress: (r && r.ip) || 0 }; } catch (e) { out.plans_sum = { total: 0, in_progress: 0 }; }
     try { out.polls_open = (await pollsData(env, false, u.searchParams.get("voter"))).filter(p => p.open).map(p => ({ id: p.id, question: p.question, pinned: p.pinned, closes_at: p.closes_at, voted: !!p.mine, total: p.total })); } catch (e) { out.polls_open = []; }
@@ -821,6 +859,7 @@ async function api(req, env, path, u) {
   if (path === "/api/plans.csv" && req.method === "GET") return plansCsv(env);
   if (path === "/api/upload" && req.method === "POST") return upload(req, env);
   if (path === "/api/exco/order" && req.method === "POST") return excoOrder(env, body);
+  if (path === "/api/remit" && req.method === "POST") return remitSave(env, body);
   const sm = path.match(/^\/api\/(save|delete)\/([a-z]+)$/);
   if (sm && req.method === "POST") {
     const [, op, n] = sm;

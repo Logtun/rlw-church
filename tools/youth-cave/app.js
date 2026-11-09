@@ -1040,14 +1040,102 @@ R.offering = function () {
   var h = head("Offering breakdown", "Each Sunday or meeting, with who counted it. Amounts in Naira.", addBtn("offerings", "Add record"));
   h += '<div class="tools"><label for="offY" style="margin:0">Year</label><select id="offY">' + ys.map(function (y) { return "<option" + (y === offYear ? " selected" : "") + ">" + y + "</option>"; }).join("") + "</select></div>";
   h += '<div class="stats"><div class="stat"><small>' + (isCurYear ? MONTHS_L[cm] + " total" : "Records") + "</small><b>" + (isCurYear ? naira(mt[cm]) : yr.length) + '</b></div><div class="stat"><small>' + offYear + " total</small><b>" + naira(tot) + "</b></div></div>";
+  var rm = remitMonths(yr, isCurYear ? cm : -1), rTot = rm.reduce(function (a, m) { return a + m.prov; }, 0), rNet = Math.round((tot - rTot) * 100) / 100;
+  h += '<div class="stats rmst"><div class="stat"><small>' + offYear + " province remittance</small><b>" + naira(rTot) + '</b></div><div class="stat"><small>' + offYear + " youth balance (after remittance)</small><b>" + naira(rNet) + "</b></div></div>";
   h += '<div class="card"><h4>Monthly totals, ' + offYear + '</h4><div class="chart" role="img" aria-label="Bar chart of monthly offering totals">' + mt.map(function (v, i) { return '<div class="bar' + (isCurYear && i === cm ? " cur" : "") + '" title="' + MONTHS[i] + ": " + naira(v) + '"><i style="height:' + (v ? Math.max(3, Math.round(v / max * 100)) : 0) + '%"></i></div>'; }).join("") + '</div><div class="blbl">' + MONTHS.map(function (m) { return "<span>" + m[0] + "</span>"; }).join("") + "</div>" +
     '<table class="tbl" style="margin-top:10px"><thead><tr><th>Month</th><th class="n">Total</th></tr></thead><tbody>' + mt.map(function (v, i) { return v ? "<tr><td>" + MONTHS_L[i] + '</td><td class="n">' + naira(v) + "</td></tr>" : ""; }).join("") + '</tbody><tfoot><tr><td>Year total</td><td class="n">' + naira(tot) + "</td></tr></tfoot></table></div>";
+  h += remitCard(rm);
   h += "<h3>Records</h3>" + (yr.length ? yr.map(function (r) {
     return '<article class="card"><div class="row"><div class="grow"><h4>' + esc(r.title) + '</h4><div class="meta">' + fdate(r.date, true) + "</div></div><div class=\"amt\">" + naira(r.amount) + "</div></div>" +
-      (r.counted_by ? '<div class="meta" style="margin-top:6px">Counted by: ' + esc(r.counted_by) + "</div>" : "") + (r.notes ? '<p class="body">' + esc(r.notes) + "</p>" : "") + fileBlock(r.photo, "Receipt for " + r.title) + editBtns("offerings", r.id) + "</article>";
+      (r.counted_by ? '<div class="meta" style="margin-top:6px">Counted by: ' + esc(r.counted_by) + "</div>" : "") + (r.notes ? '<p class="body">' + esc(r.notes) + "</p>" : "") + fileBlock(r.photo, "Receipt for " + r.title) +
+      (remitExempt(r.id) ? '<div class="meta" style="margin-top:6px"><span class="rmst-b none">Not counted for province remittance</span></div>' : "") +
+      (isExco() ? '<div class="acts"><button class="btn ghost sm" type="button" data-rmex="' + r.id + '">' + (remitExempt(r.id) ? "Count for province remittance" : "Not an offering (no remittance)") + "</button></div>" : "") +
+      editBtns("offerings", r.id) + "</article>";
   }).join("") : '<p class="empty">No offering records for ' + offYear + " yet.</p>");
   return h;
 };
+// ---------- province remittance (share of each month's offering sent to the province) ----------
+function remitInfo() { var r = D.remit || {}; return { rate: isFinite(Number(r.rate)) ? Number(r.rate) : 30, sent: r.sent || {}, exempt: Array.isArray(r.exempt) ? r.exempt.map(Number) : [] }; }
+function remitExempt(id) { return remitInfo().exempt.indexOf(Number(id)) >= 0; }
+function pct(n) { n = Number(n) || 0; return (Math.round(n * 100) / 100).toString() + "%"; }
+function remitMonths(yr, cm) {
+  var ri = remitInfo(), out = [], by = {};
+  yr.forEach(function (r) { var i = +r.date.slice(5, 7) - 1; (by[i] = by[i] || []).push(r); });
+  for (var i = 11; i >= 0; i--) {
+    if (!by[i] && i !== cm) continue;
+    var ym = offYear + "-" + (i < 9 ? "0" : "") + (i + 1), s = ri.sent[ym] || null, t = 0, ex = [];
+    (by[i] || []).forEach(function (r) { if (ri.exempt.indexOf(Number(r.id)) >= 0) ex.push(r); else t += Number(r.amount) || 0; });
+    var rate = s && isFinite(Number(s.rate)) ? Number(s.rate) : ri.rate, total = Math.round(t * 100) / 100;
+    var prov = Math.round(total * rate) / 100;
+    out.push({ ym: ym, i: i, total: total, rate: rate, prov: prov, net: Math.round((total - prov) * 100) / 100, sent: s, ex: ex });
+  }
+  return out;
+}
+var RMR = { edit: false };
+function remitCard(rm) {
+  var ri = remitInfo(), ex = isExco();
+  var h = '<div class="card rmc"><div class="row"><div class="grow"><h4>Province remittance</h4><div class="meta">' + pct(ri.rate) + " of each month\u2019s youth offering is sent to the province. The rest stays with the youth. Contributions are not included." + (ex ? " A record that is not an offering (for example a handover balance) can be left out with its \u201CNot an offering\u201D button." : "") + "</div></div></div>";
+  if (ex) {
+    h += RMR.edit ? '<div class="rmrate"><label for="rmRate">Province rate (%)</label><div class="rmrate-r"><input id="rmRate" type="number" inputmode="decimal" min="0" max="100" step="0.5" value="' + ri.rate + '"><button class="btn pri sm" type="button" data-rmrate="save">Save rate</button><button class="btn ghost sm" type="button" data-rmrate="cancel">Cancel</button></div><p class="meta">Months already marked as sent keep the rate they were sent at.</p></div>'
+      : '<div class="acts"><button class="btn ghost sm" type="button" data-rmrate="edit">Change rate (' + pct(ri.rate) + ")</button></div>";
+  }
+  h += rm.map(function (m) {
+    var lbl = MONTHS_L[m.i] + " " + offYear, st;
+    if (m.sent) st = '<span class="rmst-b sent">Sent on ' + fdate(m.sent.d) + "</span>";
+    else if (!m.total) st = '<span class="rmst-b none">' + (m.ex.length ? "Nothing to send" : "No offering yet") + "</span>";
+    else st = '<span class="rmst-b pend">Pending</span>';
+    var r = '<div class="rmo" data-rmym="' + m.ym + '"><div class="rmo-h"><b>' + lbl + "</b>" + st + "</div>" +
+      '<div class="rml"><span>Total offering</span><b>' + naira(m.total) + "</b></div>" +
+      '<div class="rml pv"><span>Province remittance (' + pct(m.rate) + ")</span><b>&minus; " + naira(m.prov) + "</b></div>" +
+      '<div class="rml yb"><span>Youth balance (' + pct(100 - m.rate) + ")</span><b>" + naira(m.net) + "</b></div>";
+    if (m.ex.length) r += '<p class="rmx">Not counted (not an offering): ' + m.ex.map(function (x) { return esc(x.title) + " " + naira(x.amount); }).join("; ") + "</p>";
+    if (m.sent && Math.abs((Number(m.sent.amt) || 0) - m.prov) > 0.004) r += '<p class="rmw">Records changed after this was marked sent: ' + naira(m.sent.amt) + " was sent, the remittance is now " + naira(m.prov) + ".</p>";
+    if (ex) {
+      if (m.sent) r += '<div class="acts"><button class="btn ghost sm" type="button" data-rmsent="undo" data-ym="' + m.ym + '">Undo sent</button></div>';
+      else if (m.total) r += '<div class="rmmk"><label for="rmD' + m.ym + '" class="sr">Date sent for ' + lbl + '</label><input type="date" id="rmD' + m.ym + '" value="' + ME.today + '" max="' + ME.today + '"><button class="btn grn sm" type="button" data-rmsent="mark" data-ym="' + m.ym + '">Mark as sent to province</button></div>';
+    }
+    return r + "</div>";
+  }).join("");
+  return h + "</div>";
+}
+$("main").addEventListener("click", function (e) {
+  var b;
+  if ((b = e.target.closest("[data-rmrate]"))) {
+    var a = b.getAttribute("data-rmrate");
+    if (a === "edit") { RMR.edit = true; render(); var el = $("rmRate"); if (el) el.focus(); return; }
+    if (a === "cancel") { RMR.edit = false; render(); return; }
+    var v = parseFloat(($("rmRate") || {}).value);
+    if (!isFinite(v) || v < 0 || v > 100) { toast("Enter a rate between 0 and 100."); return; }
+    b.disabled = true;
+    api("api/remit", { rate: v }).then(function (r) {
+      b.disabled = false;
+      if (r && r.ok) { D.remit = r.remit; RMR.edit = false; toast("Rate saved: " + pct(r.remit.rate)); render(); }
+      else toast((r && r.error) || "Could not save the rate. Please try again.");
+    }).catch(function () {});
+    return;
+  }
+  if ((b = e.target.closest("[data-rmex]"))) {
+    var xid = +b.getAttribute("data-rmex"), now = !remitExempt(xid);
+    b.disabled = true;
+    api("api/remit", { exempt_id: xid, exempt: now }).then(function (r) {
+      b.disabled = false;
+      if (r && r.ok) { D.remit = r.remit; toast(now ? "Left out of the province remittance" : "Counted for the province remittance"); render(); }
+      else toast((r && r.error) || "Could not save. Please try again.");
+    }).catch(function () {});
+    return;
+  }
+  if ((b = e.target.closest("[data-rmsent]"))) {
+    var ym = b.getAttribute("data-ym"), mark = b.getAttribute("data-rmsent") === "mark", body = { month: ym };
+    if (mark) { var dv = ($("rmD" + ym) || {}).value; if (!dv) { toast("Pick the date it was sent."); return; } body.date = dv; }
+    else body.sent = false;
+    b.disabled = true;
+    api("api/remit", body).then(function (r) {
+      b.disabled = false;
+      if (r && r.ok) { D.remit = r.remit; toast(mark ? "Marked as sent to province" : "Marked as pending"); render(); }
+      else toast((r && r.error) || "Could not save. Please try again.");
+    }).catch(function () {});
+  }
+});
 document.addEventListener("change", function (e) {
   if (e.target.id === "offY") { offYear = e.target.value; render(); }
   if (e.target.id === "cY") { cYear = +e.target.value; loadContrib(); }

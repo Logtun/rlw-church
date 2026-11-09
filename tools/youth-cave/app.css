@@ -449,3 +449,40 @@ textarea.shr-t{min-height:170px;font-size:15px;line-height:1.45}
 @media (prefers-reduced-motion:reduce){.card.hl{animation:none}}
 [data-theme=dark] .btn.ghost.shr{color:#2bb673;border-color:#2a5a40;background:#161b22}
 [data-theme=dark] .card.hl{outline-color:#E0BE4A}
+
+/* Province remittance (Offering tab) */
+.rmc h4{margin:0}
+.rmc>.acts{margin-top:10px}
+.rmrate{margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.rmrate label{margin:0 0 6px;display:block;font-weight:700;color:var(--navy)}
+.rmrate-r{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.rmrate-r input{width:110px;flex:none}
+.rmo{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
+.rmo-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px}
+.rmo-h b{color:var(--navy);font-size:15.5px}
+.rmst-b{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:700;line-height:1.4}
+.rmst-b.sent{background:#e3f4ea;color:#0A6B38;border:1px solid #b9dfc9}
+.rmst-b.pend{background:#fbf3d9;color:#7a5d00;border:1px solid #ecd791}
+.rmst-b.none{background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.rml{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:14.5px}
+.rml span{color:var(--muted)}
+.rml b{white-space:nowrap;color:var(--ink)}
+.rml.pv b{color:#9b6d00}
+.rml.yb{border-top:2px solid var(--navy);margin-top:2px;padding-top:8px}
+.rml.yb span{color:var(--navy);font-weight:700}
+.rml.yb b{color:var(--green);font-size:16px}
+.rmw{margin:6px 0 0;font-size:13px;color:#7a5d00;background:#fbf3d9;border-radius:9px;padding:7px 9px}
+.rmx{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.rmmk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.rmmk input[type=date]{width:auto;flex:1 1 140px;min-width:0}
+.rmo .acts{margin-top:8px}
+[data-theme=dark] .rmrate{background:#1c222c;border-color:var(--line)}
+[data-theme=dark] .rmrate label,[data-theme=dark] .rmo-h b,[data-theme=dark] .rml.yb span{color:#aebcff}
+[data-theme=dark] .rml b{color:var(--ink)}
+[data-theme=dark] .rml.pv b{color:#E0BE4A}
+[data-theme=dark] .rml.yb{border-top-color:#4a5cb0}
+[data-theme=dark] .rml.yb b{color:#2bb673}
+[data-theme=dark] .rmst-b.sent{background:#14301f;color:#2bb673;border-color:#2a5a40}
+[data-theme=dark] .rmst-b.pend{background:#2d2712;color:#E0BE4A;border-color:#6b5d2e}
+[data-theme=dark] .rmst-b.none{background:#1c222c;color:var(--muted);border-color:var(--line)}
+[data-theme=dark] .rmw{background:#2d2712;color:#E0BE4A}
