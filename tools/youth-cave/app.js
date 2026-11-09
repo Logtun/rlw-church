@@ -1166,14 +1166,136 @@ $("main").addEventListener("click", function (e) {
   }
 });
 
+// Exco cards: signed-in Exco can tap "Rearrange", then drag a card by its handle (mouse or finger) or use the arrows.
+// Each change saves the order on the server (exco.sort), so everyone sees the same order.
+var EXR = { on: false, drag: null, t: null, saving: 0 };
 R.exco = function () {
   var ex = D.exco || [];
-  return head("Youth Exco", "Our Youth Executive Committee.", addBtn("exco", "Add Exco member")) + (ex.length ? '<div class="exgrid">' + ex.map(function (x) {
+  var rr = isExco() && EXR.on && ex.length > 1;
+  if (!(isExco() && ex.length > 1)) EXR.on = false;
+  var btns = addBtn("exco", "Add Exco member") + (ex.length > 1 ? '<button class="btn ' + (rr ? "grn" : "ghost") + ' sm" type="button" data-exr="1" aria-pressed="' + (rr ? "true" : "false") + '">' + (rr ? "Done" : "Rearrange") + "</button>" : "");
+  return head("Youth Exco", "Our Youth Executive Committee.", btns) +
+    (rr ? '<p class="exr-tip" role="status">Drag a card by its <b>&#10303;</b> handle, or use the arrows. The new order saves for everyone.</p>' : "") +
+    (ex.length ? '<div class="exgrid' + (rr ? " exr" : "") + '" id="exgrid">' + ex.map(function (x, i) {
     var ph = /^name to be added$/i.test(x.name);
-    return '<article class="ex"><div class="av">' + (x.photo ? '<img alt="Photo of ' + esc(x.name) + '" data-file="' + esc(x.photo) + '">' : SILH) + '</div><div class="rl">' + esc(x.role) + '</div><div class="nmx' + (ph ? " ph" : "") + '">' + esc(x.name) + "</div>" +
-      (x.phone ? '<a href="tel:' + esc(x.phone.replace(/[^\d+]/g, "")) + '">' + esc(x.phone) + "</a>" : "") + editBtns("exco", x.id) + "</article>";
+    return '<article class="ex" data-xid="' + x.id + '">' +
+      (rr ? '<button class="exh" type="button" aria-label="Drag to move ' + esc(x.name) + '" title="Drag to move">&#10303;</button>' : "") +
+      '<div class="av">' + (x.photo ? '<img alt="Photo of ' + esc(x.name) + '" data-file="' + esc(x.photo) + '">' : SILH) + '</div><div class="rl">' + esc(x.role) + '</div><div class="nmx' + (ph ? " ph" : "") + '">' + esc(x.name) + "</div>" +
+      (x.phone ? '<a href="tel:' + esc(x.phone.replace(/[^\d+]/g, "")) + '">' + esc(x.phone) + "</a>" : "") +
+      (rr ? '<div class="acts exmv"><button class="btn ghost sm" type="button" data-exmv="-1" aria-label="Move ' + esc(x.name) + ' earlier">&#8592;</button><button class="btn ghost sm" type="button" data-exmv="1" aria-label="Move ' + esc(x.name) + ' later">&#8594;</button></div>' : editBtns("exco", x.id)) +
+      "</article>";
   }).join("") + "</div>" : '<p class="empty">No Exco members listed yet.</p>');
 };
+function exGrid() { return document.getElementById("exgrid"); }
+function exMarks() {
+  var g = exGrid(); if (!g) return;
+  var c = g.children;
+  for (var i = 0; i < c.length; i++) {
+    var b = c[i].querySelectorAll("[data-exmv]");
+    if (b[0]) b[0].disabled = i === 0;
+    if (b[1]) b[1].disabled = i === c.length - 1;
+  }
+}
+function exSync() {
+  var g = exGrid(); if (!g) return;
+  var ids = [].map.call(g.children, function (el) { return +el.getAttribute("data-xid"); });
+  var by = {}; (D.exco || []).forEach(function (x) { by[x.id] = x; });
+  var same = (D.exco || []).map(function (x) { return x.id; }).join(",") === ids.join(",");
+  if (same) return;
+  D.exco = ids.map(function (id) { return by[id]; }).filter(Boolean);
+  exMarks();
+  clearTimeout(EXR.t);
+  EXR.t = setTimeout(function () { exSave(ids); }, 450);
+}
+function exSave(ids) {
+  var n = ++EXR.saving;
+  api("api/exco/order", { ids: ids }).then(function (r) {
+    if (n !== EXR.saving) return;
+    if (r && r.ok) { if (r.rows) D.exco = r.rows; toast("Order saved"); }
+    else { toast((r && r.error) || "Could not save the order. Please try again."); if (r && r.rows) D.exco = r.rows; if (cur === "exco") render(); }
+  }).catch(function () {});
+}
+$("main").addEventListener("click", function (e) {
+  var b;
+  if ((b = e.target.closest("[data-exr]"))) { EXR.on = !EXR.on; render(); if (EXR.on) toast("Rearrange is on"); return; }
+  if ((b = e.target.closest("[data-exmv]"))) {
+    var card = b.closest(".ex"), g = exGrid(); if (!card || !g) return;
+    var d = +b.getAttribute("data-exmv");
+    if (d < 0 && card.previousElementSibling) g.insertBefore(card, card.previousElementSibling);
+    else if (d > 0 && card.nextElementSibling) g.insertBefore(card.nextElementSibling, card);
+    else return;
+    card.classList.remove("exmoved"); void card.offsetWidth; card.classList.add("exmoved");
+    exSync();
+    var nb = card.querySelector('[data-exmv="' + d + '"]'); if (nb && !nb.disabled) nb.focus(); else b.blur();
+  }
+});
+// Pointer-based drag (works with mouse and touch, including iPhone; no HTML5 drag-and-drop).
+$("main").addEventListener("pointerdown", function (e) {
+  var h = e.target.closest(".exh"); if (!h || !isExco()) return;
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  var card = h.closest(".ex"), g = exGrid(); if (!card || !g) return;
+  e.preventDefault();
+  try { h.setPointerCapture(e.pointerId); } catch (x) {}
+  var r = card.getBoundingClientRect();
+  EXR.drag = { id: e.pointerId, card: card, h: h, g: g, dx: e.clientX - r.left, dy: e.clientY - r.top, x: e.clientX, y: e.clientY, raf: 0 };
+  card.classList.add("exdrag"); g.classList.add("exdragging");
+  exFollow();
+});
+function exFollow() {
+  var d = EXR.drag; if (!d) return;
+  // keep the card under the finger: offset it from its slot by the pointer's distance
+  var r = d.card.getBoundingClientRect();
+  var cx = parseFloat(d.card.getAttribute("data-tx") || 0), cy = parseFloat(d.card.getAttribute("data-ty") || 0);
+  var tx = cx + (d.x - d.dx) - r.left, ty = cy + (d.y - d.dy) - r.top;
+  d.card.setAttribute("data-tx", tx); d.card.setAttribute("data-ty", ty);
+  d.card.style.transform = "translate(" + tx + "px," + ty + "px) scale(1.04)";
+}
+function exOver(x, y) {
+  var d = EXR.drag, c = d.g.children;
+  // use each card's layout slot (ignores the slide animation), so cards don't swap back and forth
+  var gr = d.g.getBoundingClientRect(), gl = d.g.offsetLeft, gt = d.g.offsetTop;
+  for (var i = 0; i < c.length; i++) {
+    if (c[i] === d.card) continue;
+    var l = gr.left + c[i].offsetLeft - gl, t = gr.top + c[i].offsetTop - gt;
+    if (x >= l && x <= l + c[i].offsetWidth && y >= t && y <= t + c[i].offsetHeight) return c[i];
+  }
+  return null;
+}
+window.addEventListener("pointermove", function (e) {
+  var d = EXR.drag; if (!d || e.pointerId !== d.id) return;
+  e.preventDefault();
+  d.x = e.clientX; d.y = e.clientY;
+  var t = exOver(d.x, d.y);
+  if (t) {
+    var kids = [].slice.call(d.g.children);
+    var ti = kids.indexOf(t), ci = kids.indexOf(d.card);
+    var before = [].map.call(d.g.children, function (el) { return [el, el.getBoundingClientRect()]; });
+    d.g.insertBefore(d.card, ti > ci ? t.nextElementSibling : t);
+    // slide the other cards to their new places
+    before.forEach(function (p) {
+      var el = p[0]; if (el === d.card) return;
+      var n = el.getBoundingClientRect(), ox = p[1].left - n.left, oy = p[1].top - n.top;
+      if (!ox && !oy) return;
+      el.style.transition = "none"; el.style.transform = "translate(" + ox + "px," + oy + "px)";
+      requestAnimationFrame(function () { el.style.transition = "transform .2s ease"; el.style.transform = ""; });
+    });
+  }
+  exFollow();
+  // scroll the page when the finger is near the top or bottom edge
+  var vh = window.innerHeight, edge = 70;
+  if (d.y < edge) window.scrollBy(0, -12); else if (d.y > vh - edge) window.scrollBy(0, 12);
+}, { passive: false });
+function exDrop(e) {
+  var d = EXR.drag; if (!d || (e && e.pointerId !== d.id)) return;
+  EXR.drag = null;
+  d.card.classList.remove("exdrag"); d.g.classList.remove("exdragging");
+  d.card.style.transition = "transform .18s ease"; d.card.style.transform = "";
+  d.card.removeAttribute("data-tx"); d.card.removeAttribute("data-ty");
+  setTimeout(function () { d.card.style.transition = ""; }, 220);
+  exSync();
+}
+window.addEventListener("pointerup", exDrop);
+window.addEventListener("pointercancel", exDrop);
 
 var sgFilter = "new";
 R.suggest = function () {

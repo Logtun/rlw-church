@@ -160,6 +160,15 @@ function parseField(type, v) {
 }
 const LABELS = { date: "date", title: "title", amount: "amount", name: "name", role: "role", what: "action item", duty: "duty", minute_id: "meeting", item: "item", category: "category" };
 
+// Exco only: save the display order of the Exco cards. Only the sort column changes; names and details are untouched.
+async function excoOrder(env, body) {
+  const ids = Array.isArray(body.ids) ? body.ids.map(x => parseInt(x, 10) || 0) : [];
+  const { results } = await env.DB.prepare("SELECT id FROM exco").all();
+  const have = new Set(results.map(r => r.id));
+  if (!ids.length || ids.length !== have.size || new Set(ids).size !== ids.length || ids.some(id => !have.has(id))) return J({ ok: false, error: "The Exco list changed. Refresh the page and try again." }, 409);
+  await env.DB.batch(ids.map((id, i) => env.DB.prepare("UPDATE exco SET sort = ? WHERE id = ?").bind((i + 1) * 10, id)));
+  return J({ ok: true, rows: await listSection(env, "exco") });
+}
 async function listSection(env, name) {
   const s = SECTIONS[name];
   const { results } = await env.DB.prepare(`SELECT * FROM ${name} ORDER BY ${s.order}`).all();
@@ -811,6 +820,7 @@ async function api(req, env, path, u) {
   if (pm && req.method === "POST") return planAction(env, pm[1], body);
   if (path === "/api/plans.csv" && req.method === "GET") return plansCsv(env);
   if (path === "/api/upload" && req.method === "POST") return upload(req, env);
+  if (path === "/api/exco/order" && req.method === "POST") return excoOrder(env, body);
   const sm = path.match(/^\/api\/(save|delete)\/([a-z]+)$/);
   if (sm && req.method === "POST") {
     const [, op, n] = sm;
