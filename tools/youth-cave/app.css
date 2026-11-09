@@ -415,3 +415,18 @@ details.pl-ex>summary{cursor:pointer;font-weight:700;color:var(--navy);font-size
   .tile{transition:none}
   .tile:hover,.tile:active{transform:none}
 }
+
+/* Share to WhatsApp + deep-link highlight */
+.btn.shr{color:#0A8F4A;border-color:#b9dfc9}
+.btn.shr svg{flex:none}
+.rday .acts{border-top:1px solid var(--line);padding-top:10px}
+.shr-h{margin:0 0 10px;color:var(--muted);font-size:14.5px;line-height:1.45}
+textarea.shr-t{min-height:170px;font-size:15px;line-height:1.45}
+.btn.shr-wa{min-height:54px;font-size:17px;gap:9px;border-radius:13px;text-align:center}
+.shr-n{text-align:center}
+.shr-s .mf-actions{margin-top:14px}
+.card.hl{outline:3px solid var(--gold);outline-offset:2px;animation:rlwHl 2.4s ease-out 1}
+@keyframes rlwHl{0%{outline-color:rgba(201,162,39,0);box-shadow:0 0 0 rgba(201,162,39,0)}12%{outline-color:#C9A227;box-shadow:0 0 22px rgba(201,162,39,.55)}75%{outline-color:#C9A227;box-shadow:0 0 16px rgba(201,162,39,.4)}100%{outline-color:rgba(201,162,39,0);box-shadow:0 0 0 rgba(201,162,39,0)}}
+@media (prefers-reduced-motion:reduce){.card.hl{animation:none}}
+[data-theme=dark] .btn.ghost.shr{color:#2bb673;border-color:#2a5a40;background:#161b22}
+[data-theme=dark] .card.hl{outline-color:#E0BE4A}

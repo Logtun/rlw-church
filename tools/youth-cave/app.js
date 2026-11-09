@@ -47,7 +47,7 @@ $("lform").addEventListener("submit", function (e) {
       b.disabled = false;
       if (!r.ok) { $("lerr").textContent = r.error || "Could not sign in."; return; }
       token = r.token; try { localStorage.setItem(TK, token); } catch (e2) {}
-      $("pw").value = ""; cur = "home"; try { history.replaceState(null, "", location.pathname + location.search); } catch (e3) {} start();
+      $("pw").value = ""; cur = "home"; start();
     }).catch(function () { b.disabled = false; $("lerr").textContent = "Network problem. Please try again."; });
 });
 function signOut(expired) {
@@ -99,11 +99,42 @@ function bgPick() {
 }
 function start() {
   $("login").hidden = true; $("app").hidden = false;
-  var h = (location.hash || "").slice(1); if (h && TABS.some(function (t) { return t[0] === h; })) cur = h;
+  routeHash();
   $("main").innerHTML = '<p class="muted">Loading...</p>';
   load().catch(function () {});
 }
 function refresh() { return load().catch(function () {}); }
+
+// ---------- deep links ----------
+// #announcements/5, #polls/8, #events/3, #roster/2026-11-22, #jobs (older #notices/5 also works).
+// Opened logged-out, the hash survives the login and the app lands on the item.
+var ALIAS = { announcements: "notices", announcement: "notices", notices: "notices", polls: "polls", poll: "polls", events: "events", event: "events", roster: "roster", duty: "roster", jobs: "jobs" };
+var ITEMPRE = { notices: "ann-", events: "ev-", polls: "poll-", roster: "rday-" };
+var PEND = null;
+function routeHash() {
+  var h = ""; try { h = decodeURIComponent((location.hash || "").slice(1)); } catch (e) { h = (location.hash || "").slice(1); }
+  var p = h.split("/"), t = ALIAS[p[0]] || p[0];
+  if (!t || !TABS.some(function (x) { return x[0] === t; })) return false;
+  cur = t; TX = true;
+  PEND = p[1] && /^[\w-]{1,40}$/.test(p[1]) && ITEMPRE[t] ? { tab: t, id: p[1] } : null;
+  return true;
+}
+function applyPending() {
+  if (!PEND || PEND.tab !== cur) return;
+  var el = document.querySelector('#main [data-item="' + ITEMPRE[cur] + PEND.id + '"]');
+  PEND = null;
+  if (!el) return;
+  var d = el.closest("details"); if (d) { d.open = true; if (d.id === "plPast") PL.pastOpen = true; }
+  setTimeout(function () {
+    el.scrollIntoView({ block: "center", behavior: reduceMotion() ? "auto" : "smooth" });
+    el.classList.remove("hl"); void el.offsetWidth; el.classList.add("hl");
+    clearTimeout(applyPending.t); applyPending.t = setTimeout(function () { el.classList.remove("hl"); }, 2600);
+  }, 280);
+}
+window.addEventListener("hashchange", function () {
+  if (!token || $("app").hidden) return;
+  if (routeHash()) { closeModal(); drawTabs(); render(); window.scrollTo(0, 0); }
+});
 
 // ---------- files ----------
 function fileSrc(key) {
@@ -229,7 +260,15 @@ function editRow(sec, row, extra, after) {
     api("api/save/" + sec, body).then(function (r) {
       $("msave").disabled = false;
       if (!r.ok) { $("merr").textContent = r.error; return; }
-      closeModal(); toast(row.id ? "Saved" : "Added"); (after || refresh)();
+      closeModal(); toast(row.id ? "Saved" : "Added");
+      var done = (after || refresh)();
+      if (!row.id && r.id && isExco() && (sec === "announcements" || sec === "events" || sec === "roster")) {
+        var nb = body; nb.id = r.id;
+        Promise.resolve(done).then(function () {
+          if (sec === "roster") return openShare("roster", nb.date, true);
+          openShare(sec === "events" ? "event" : "announcement", find(D[sec], r.id) || nb, true);
+        });
+      }
     }).catch(function () {});
   });
   wireFiles();
@@ -249,7 +288,7 @@ function head(title, sub, btn) {
   return '<div class="ph"><h2>' + title + "</h2>" + (btn && isExco() ? btn : "") + (sub ? "<p>" + sub + "</p>" : "") + "</div>";
 }
 function addBtn(sec, label) { return '<button class="btn grn sm" type="button" data-add="' + sec + '">' + label + "</button>"; }
-function editBtns(sec, id) { return isExco() ? '<div class="acts"><button class="btn ghost sm" type="button" data-edit="' + sec + '" data-id="' + id + '">Edit</button><button class="btn danger sm" type="button" data-del="' + sec + '" data-id="' + id + '">Delete</button></div>' : ""; }
+function editBtns(sec, id) { return isExco() ? '<div class="acts">' + (sec === "announcements" ? shareBtn("announcement", id) : sec === "events" ? shareBtn("event", id) : "") + '<button class="btn ghost sm" type="button" data-edit="' + sec + '" data-id="' + id + '">Edit</button><button class="btn danger sm" type="button" data-del="' + sec + '" data-id="' + id + '">Delete</button></div>' : ""; }
 var R = {};
 function kickHeroVideo() {
   var v = document.querySelector(".hero-bg"); if (!v) return;
@@ -428,6 +467,7 @@ function render() {
   if (cur === "jobs") { if (JB.loaded) drawJobs(); loadJobs(); }
   if (cur === "polls") { if (PL.loaded) drawPolls(); loadPolls(); }
   if (cur === "plans") { if (PN.loaded) drawPlans(); loadPlans(); }
+  if (cur === "notices" || cur === "events" || cur === "roster") applyPending();
 }
 $("main").addEventListener("click", function (e) {
   var b;
@@ -471,7 +511,7 @@ function loadPolls() {
   return api("api/polls?voter=" + voterId()).then(function (r) {
     if (!r.ok) { if ($("plList")) $("plList").innerHTML = '<p class="err">' + esc(r.error) + "</p>"; return; }
     PL.rows = r.polls || []; PL.now = r.now || Date.now(); PL.loaded = true;
-    if (cur === "polls") drawPolls();
+    if (cur === "polls") { drawPolls(); applyPending(); }
   }).catch(function () {});
 }
 R.polls = function () {
@@ -503,7 +543,7 @@ function pollVoteForm(p) {
 function pollCard(p) {
   var voted = !!p.mine, voting = p.open && (!voted || PL.change[p.id]);
   var st = p.open ? (p.closes_at ? "Closes " + pollWhen(p.closes_at) : "Open") : "Closed";
-  var h = '<article class="card pl' + (p.pinned ? " pinned" : "") + (p.open ? "" : " closed") + '" id="poll-' + p.id + '">';
+  var h = '<article class="card pl' + (p.pinned ? " pinned" : "") + (p.open ? "" : " closed") + '" id="poll-' + p.id + '" data-item="poll-' + p.id + '">';
   h += (p.pinned ? '<span class="pin">Pinned</span>' : "") + '<h4 class="pl-q">' + esc(p.question) + "</h4>";
   h += '<p class="meta"><span class="pl-st' + (p.open ? " open" : "") + '">' + st + "</span> &middot; " + cuNum(p.total, "pt" + p.id) + " vote" + (p.total === 1 ? "" : "s") + " &middot; " + (p.multi ? "Choose one or more" : "Choose one") + "</p>";
   if (voting) {
@@ -512,7 +552,7 @@ function pollCard(p) {
   } else h += pollBars(p);
   if (!voting && p.open && voted) h += '<div class="acts"><button type="button" class="btn ghost sm" data-pchange="' + p.id + '">Change my vote</button></div>';
   if (isExco()) {
-    h += '<div class="acts pl-adm">' +
+    h += '<div class="acts pl-adm">' + shareBtn("poll", p.id) +
       (p.open ? '<button type="button" class="btn ghost sm" data-pact="close" data-id="' + p.id + '">Close now</button>' : '<button type="button" class="btn ghost sm" data-pact="reopen" data-id="' + p.id + '">Reopen</button>') +
       (p.pinned ? '<button type="button" class="btn ghost sm" data-pact="unpin" data-id="' + p.id + '">Unpin</button>' : '<button type="button" class="btn ghost sm" data-pact="pin" data-id="' + p.id + '">Pin</button>') +
       (p.total ? "" : '<button type="button" class="btn ghost sm" data-pedit="' + p.id + '">Edit</button>') +
@@ -571,7 +611,9 @@ function pollForm(p) {
     api("api/polls/save", body).then(function (r) {
       $("msave").disabled = false;
       if (!r.ok) { $("merr").textContent = r.error; return; }
-      closeModal(); toast(p.id ? "Poll saved" : "Poll created"); loadPolls(); refreshQuiet();
+      closeModal(); toast(p.id ? "Poll saved" : "Poll created");
+      var pl = loadPolls(); refreshQuiet();
+      if (!p.id && r.id) { var nq = { id: r.id, question: body.question }; pl.then(function () { openShare("poll", find(PL.rows, r.id) || nq, true); }); }
     }).catch(function () {});
   });
   wireOpts();
@@ -836,10 +878,10 @@ function openRemind(kind, id) {
   openModal("Remind me", html, null);
 }
 function announcementCard(a) {
-  return '<article class="card' + (a.pinned ? " pinned" : "") + '"><h4>' + (a.pinned ? '<span class="pin">Pinned</span>' : "") + esc(a.title) + '</h4><div class="meta">' + fdate(a.date) + "</div>" + (a.body ? '<p class="body">' + esc(a.body) + "</p>" : "") + evLine(a) + remindBtn("announcement", a) + editBtns("announcements", a.id) + "</article>";
+  return '<article class="card' + (a.pinned ? " pinned" : "") + '" data-item="ann-' + a.id + '"><h4>' + (a.pinned ? '<span class="pin">Pinned</span>' : "") + esc(a.title) + '</h4><div class="meta">' + fdate(a.date) + "</div>" + (a.body ? '<p class="body">' + esc(a.body) + "</p>" : "") + evLine(a) + remindBtn("announcement", a) + editBtns("announcements", a.id) + "</article>";
 }
 function eventCard(ev) {
-  return '<article class="card"><h4>' + esc(ev.title) + '</h4><div class="meta">' + fdate(ev.date, true) + (ev.time ? " at " + ftime(ev.time) : "") + (ev.venue ? " &middot; " + esc(ev.venue) : "") + "</div>" + (ev.description ? '<p class="body">' + esc(ev.description) + "</p>" : "") + fileBlock(ev.photo, "Flyer for " + ev.title) + remindBtn("event", ev) + editBtns("events", ev.id) + "</article>";
+  return '<article class="card" data-item="ev-' + ev.id + '"><h4>' + esc(ev.title) + '</h4><div class="meta">' + fdate(ev.date, true) + (ev.time ? " at " + ftime(ev.time) : "") + (ev.venue ? " &middot; " + esc(ev.venue) : "") + "</div>" + (ev.description ? '<p class="body">' + esc(ev.description) + "</p>" : "") + fileBlock(ev.photo, "Flyer for " + ev.title) + remindBtn("event", ev) + editBtns("events", ev.id) + "</article>";
 }
 function rosterGroups() {
   var by = {}; (D.roster || []).forEach(function (r) { (by[r.date] = by[r.date] || []).push(r); });
@@ -855,11 +897,11 @@ function rosterGroups() {
 }
 function rosterDayCard(d, rows, thisWeek) {
   rows = rows.slice().sort(function (a, b) { return a.duty.localeCompare(b.duty); });
-  return '<article class="card rday' + (thisWeek ? " this" : "") + '"><h4><span>' + fdate(d, true) + "</span>" + (d === ME.today ? '<span class="tag g">Today</span>' : "") + "</h4>" +
+  return '<article class="card rday' + (thisWeek ? " this" : "") + '" data-item="rday-' + d + '"><h4><span>' + fdate(d, true) + "</span>" + (d === ME.today ? '<span class="tag g">Today</span>' : "") + "</h4>" +
     rows.map(function (r) {
       return '<div class="rl2"><b>' + esc(r.duty) + "</b><span>" + (r.person ? esc(r.person) : '<span class="muted">Not assigned</span>') + "</span>" +
         (isExco() ? '<span class="mini"><button class="btn ghost sm" data-edit="roster" data-id="' + r.id + '" type="button">Edit</button><button class="btn danger sm" data-del="roster" data-id="' + r.id + '" type="button" aria-label="Delete ' + esc(r.duty) + '">Del</button></span>' : "") + "</div>";
-    }).join("") + "</article>";
+    }).join("") + (isExco() ? '<div class="acts">' + shareBtn("roster", d) + "</div>" : "") + "</article>";
 }
 
 R.home = function () {
@@ -912,7 +954,7 @@ function rosterDay() {
     $("msave").disabled = true;
     var p = Promise.resolve(), bad = null;
     rows.forEach(function (r) { p = p.then(function () { return api("api/save/roster", r).then(function (x) { if (!x.ok) bad = x.error; }); }); });
-    p.then(function () { $("msave").disabled = false; if (bad) { $("merr").textContent = bad; return; } closeModal(); toast("Roster saved"); refresh(); });
+    p.then(function () { $("msave").disabled = false; if (bad) { $("merr").textContent = bad; return; } closeModal(); toast("Roster saved"); refresh().then(function () { openShare("roster", date, true); }); });
   });
   $("rd_more").addEventListener("click", function () { $("rd_rows").insertAdjacentHTML("beforeend", rdPair(n++, "")); });
 }
@@ -1258,6 +1300,81 @@ $("main").addEventListener("click", function (e) {
   }
 });
 $("main").addEventListener("input", function (e) { if (e.target.id === "jbQ") { jbQ = e.target.value.trim(); drawJobs(); } });
+
+// ---------- share to WhatsApp ----------
+// Tab cannot post into the WhatsApp group, so after Exco creates an item a sheet offers a ready message
+// with the direct link to that item. One tap opens WhatsApp with the text filled in.
+var SHARE_BASE = "https://rlw-parish.vercel.app/youth/";
+var WA_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.2-.3-.2-.5-.3z"/></svg>';
+var SHARE_TAB = { announcement: "announcements", event: "events", poll: "polls", roster: "roster", jobs: "jobs" };
+var PW_LINE = "Use the Youth Cave password to log in.";
+function shareBtn(kind, id) { return '<button class="btn ghost sm shr" type="button" data-share="' + kind + '" data-id="' + esc(id) + '" aria-label="Share to WhatsApp">' + WA_SVG + "Share</button>"; }
+function itemLink(kind, id) { return SHARE_BASE + "#" + SHARE_TAB[kind] + (id != null && id !== "" ? "/" + id : ""); }
+function clip(s, n) {
+  s = String(s || "").replace(/\s+/g, " ").trim(); if (s.length <= n) return s;
+  var c = s.slice(0, n), j = Math.max(c.lastIndexOf(". "), c.lastIndexOf("! "), c.lastIndexOf("? "));
+  if (j >= n * 0.5) return c.slice(0, j + 1);
+  var i = c.lastIndexOf(" "); if (i > n * 0.6) c = c.slice(0, i);
+  return c.replace(/[\s,.;:!?|\-]+$/, "") + "...";
+}
+function noDot(s) { return String(s || "").trim().replace(/[.\s]+$/, ""); }
+function shareText(kind, x) {
+  var L2 = [];
+  if (kind === "announcement") {
+    L2.push("New announcement on the Youth Cave: " + noDot(x.title));
+    if (x.body) L2.push("", clip(x.body, 110));
+    L2.push("", "Check it out: " + itemLink(kind, x.id));
+  } else if (kind === "poll") {
+    L2.push("New poll on the Youth Cave: " + String(x.question || "").trim());
+    if (x.closes_at && x.open !== false) L2.push("Voting closes " + pollWhen(x.closes_at) + ".");
+    L2.push("", "Cast your vote here: " + itemLink(kind, x.id));
+  } else if (kind === "event") {
+    var w = fdate(x.date, true) + (x.time ? ", " + ftime(x.time) : "");
+    L2.push("New event: " + noDot(x.title) + " on " + w + (x.venue ? " at " + noDot(x.venue) : "") + ".");
+    if (x.description) L2.push("", clip(x.description, 110));
+    L2.push("", "Details: " + itemLink(kind, x.id));
+  } else if (kind === "roster") {
+    var duties = []; (x.rows || []).forEach(function (r) { if (duties.indexOf(r.duty) < 0) duties.push(r.duty); });
+    duties.sort(function (a, b) { return a.localeCompare(b); });
+    var sm = duties.length > 3 ? duties.slice(0, 3).join(", ") + " and " + (duties.length - 3) + " more" : duties.length > 1 ? duties.slice(0, -1).join(", ") + " and " + duties[duties.length - 1] : duties.join("");
+    L2.push("Duty roster updated: " + fdate(x.date, true) + (sm ? " (" + sm + ")" : "") + ".");
+    L2.push("", "See your duty: " + itemLink(kind, x.date));
+  } else if (kind === "jobs") {
+    L2.push("New jobs and opportunities on the Youth Cave.", "", "Check them out: " + itemLink("jobs"));
+  }
+  L2.push(PW_LINE);
+  return L2.join("\n");
+}
+function waHref(t) { return "https://wa.me/?text=" + encodeURIComponent(t); }
+function shareItem(kind, ref) {
+  if (kind === "roster") { var date = typeof ref === "object" ? ref.date : ref; return { date: date, rows: (D.roster || []).filter(function (r) { return r.date === date; }) }; }
+  if (ref && typeof ref === "object") return ref;
+  var id = +ref;
+  if (kind === "announcement") return find(D.announcements, id);
+  if (kind === "event") return find(D.events, id);
+  if (kind === "poll") return find(PL.rows, id) || find(D.polls_open, id);
+  return null;
+}
+function openShare(kind, ref, isNew) {
+  if (!isExco()) return;
+  var x = shareItem(kind, ref); if (!x) { toast("Could not find that item."); return; }
+  var t = shareText(kind, x);
+  var html = '<div class="shr-s"><p class="shr-h">' + (isNew ? "Let everyone know. " : "") + "This message has the direct link. You can edit it before sending.</p>" +
+    '<label class="sr" for="shTxt">Message</label><textarea id="shTxt" class="shr-t" rows="8" spellcheck="true">' + esc(t) + "</textarea>" +
+    '<a class="btn grn wide shr-wa" id="shWa" href="' + esc(waHref(t)) + '" target="_blank" rel="noopener">' + WA_SVG.replace('width="18" height="18"', 'width="22" height="22"') + "Share to WhatsApp</a>" +
+    '<p class="rm-s shr-n">WhatsApp opens with the message ready. Pick the Youth group and tap send.</p>' +
+    '<div class="mf-actions"><button type="button" class="btn ghost" id="shCopy">Copy message</button><button type="button" class="btn ghost" id="shNo">Not now</button></div></div>';
+  openModal("Share with the youth group?", html, null);
+  var ta = $("shTxt"), wa = $("shWa");
+  ta.addEventListener("input", function () { wa.href = waHref(ta.value); });
+  wa.addEventListener("click", function () { setTimeout(closeModal, 400); });
+  $("shCopy").addEventListener("click", function () { copyText(ta.value).then(function (ok) { toast(ok ? "Message copied. Paste it in the Youth group." : "Could not copy. Press and hold the text to copy it."); }); });
+  $("shNo").addEventListener("click", closeModal);
+}
+$("main").addEventListener("click", function (e) {
+  var b = e.target.closest("[data-share]"); if (!b) return;
+  openShare(b.getAttribute("data-share"), b.getAttribute("data-id"), false);
+});
 
 // ---------- go ----------
 if (token) start(); else $("login").hidden = false;
