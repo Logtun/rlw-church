@@ -1074,7 +1074,7 @@ function remitMonths(yr, cm) {
 var RMR = { edit: false };
 function remitCard(rm) {
   var ri = remitInfo(), ex = isExco();
-  var h = '<div class="card rmc"><div class="row"><div class="grow"><h4>Province remittance</h4><div class="meta">' + pct(ri.rate) + " of each month\u2019s youth offering is sent to the province. The rest stays with the youth. Contributions are not included." + (ex ? " A record that is not an offering (for example a handover balance) can be left out with its \u201CNot an offering\u201D button." : "") + "</div></div></div>";
+  var h = '<div class="card rmc"><div class="row"><div class="grow"><h4>Province remittance</h4><div class="meta">Each month, ' + pct(ri.rate) + " of the offering goes to the province.</div></div></div>";
   if (ex) {
     h += RMR.edit ? '<div class="rmrate"><label for="rmRate">Province rate (%)</label><div class="rmrate-r"><input id="rmRate" type="number" inputmode="decimal" min="0" max="100" step="0.5" value="' + ri.rate + '"><button class="btn pri sm" type="button" data-rmrate="save">Save rate</button><button class="btn ghost sm" type="button" data-rmrate="cancel">Cancel</button></div><p class="meta">Months already marked as sent keep the rate they were sent at.</p></div>'
       : '<div class="acts"><button class="btn ghost sm" type="button" data-rmrate="edit">Change rate (' + pct(ri.rate) + ")</button></div>";
@@ -1083,11 +1083,11 @@ function remitCard(rm) {
     var lbl = MONTHS_L[m.i] + " " + offYear, st;
     if (m.sent) st = '<span class="rmst-b sent">Sent on ' + fdate(m.sent.d) + "</span>";
     else if (!m.total) st = '<span class="rmst-b none">' + (m.ex.length ? "Nothing to send" : "No offering yet") + "</span>";
-    else st = '<span class="rmst-b pend">Pending</span>';
+    else st = '<span class="rmst-b pend">Not sent yet</span>';
     var r = '<div class="rmo" data-rmym="' + m.ym + '"><div class="rmo-h"><b>' + lbl + "</b>" + st + "</div>" +
       '<div class="rml"><span>Total offering</span><b>' + naira(m.total) + "</b></div>" +
-      '<div class="rml pv"><span>Province remittance (' + pct(m.rate) + ")</span><b>&minus; " + naira(m.prov) + "</b></div>" +
-      '<div class="rml yb"><span>Youth balance (' + pct(100 - m.rate) + ")</span><b>" + naira(m.net) + "</b></div>";
+      '<div class="rml pv"><span>&minus; Province (' + pct(m.rate) + ")</span><b>" + naira(m.prov) + "</b></div>" +
+      '<div class="rml yb"><span>= Youth keeps (' + pct(100 - m.rate) + ")</span><b>" + naira(m.net) + "</b></div>";
     if (m.ex.length) r += '<p class="rmx">Not counted (not an offering): ' + m.ex.map(function (x) { return esc(x.title) + " " + naira(x.amount); }).join("; ") + "</p>";
     if (m.sent && Math.abs((Number(m.sent.amt) || 0) - m.prov) > 0.004) r += '<p class="rmw">Records changed after this was marked sent: ' + naira(m.sent.amt) + " was sent, the remittance is now " + naira(m.prov) + ".</p>";
     if (ex) {
