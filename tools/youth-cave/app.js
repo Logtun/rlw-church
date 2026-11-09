@@ -117,19 +117,34 @@ function load() {
 var BG_VIDS = ["youth_bg", "youth_bg_2", "youth_bg_3", "youth_bg_4", "youth_bg_1"];
 var BG_I = Math.floor(Date.now() / 86400000) % BG_VIDS.length;
 function bgPick() { return BG_VIDS[BG_I]; }
-function bgNext() {
-  var v = document.querySelector("video.hero-bg");
-  if (!v) return;
+function bgNext(v) {
+  if (!v || v.classList.contains("bg-out") || v.getAttribute("data-sliding")) return;
+  v.setAttribute("data-sliding", "1");
   BG_I = (BG_I + 1) % BG_VIDS.length;
   var want = BG_VIDS[BG_I];
-  v.setAttribute("data-bg", want);
-  v.poster = "bg/" + want + "_poster.jpg";
-  v.src = "bg/" + want + ".mp4";
-  try { v.load(); var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+  var n = document.createElement("video");
+  n.className = "hero-bg"; n.muted = true; n.defaultMuted = true; n.playsInline = true; n.autoplay = true; n.preload = "auto";
+  n.setAttribute("muted", ""); n.setAttribute("playsinline", ""); n.setAttribute("webkit-playsinline", ""); n.setAttribute("aria-hidden", "true");
+  n.setAttribute("data-bg", want); n.poster = "bg/" + want + "_poster.jpg";
+  n.style.transform = "translateX(100%)"; n.style.transition = "transform .7s ease";
+  v.style.transition = "transform .7s ease";
+  n.src = "bg/" + want + ".mp4";
+  v.parentNode.insertBefore(n, v.nextSibling);
+  var go = function () {
+    if (n.getAttribute("data-in")) return; n.setAttribute("data-in", "1");
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      n.style.transform = "translateX(0)"; v.style.transform = "translateX(-100%)"; v.classList.add("bg-out");
+    }); });
+    setTimeout(function () { if (v.parentNode) v.parentNode.removeChild(v); }, 800);
+  };
+  n.addEventListener("playing", go); n.addEventListener("canplay", go);
+  setTimeout(go, 1500);
+  try { var p = n.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
 }
 function bgStart() {
   if (window.BG_ON) return; window.BG_ON = true;
-  document.addEventListener("ended", function (e) { if (e.target && e.target.classList && e.target.classList.contains("hero-bg")) bgNext(); }, true);
+  document.addEventListener("ended", function (e) { if (e.target && e.target.classList && e.target.classList.contains("hero-bg")) bgNext(e.target); }, true);
+  document.addEventListener("timeupdate", function (e) { var t = e.target; if (t && t.classList && t.classList.contains("hero-bg") && t.duration && t.duration - t.currentTime < 0.7) bgNext(t); }, true);
 }
 function start() {
   $("login").hidden = true; $("app").hidden = false;
