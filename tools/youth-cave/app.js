@@ -114,7 +114,7 @@ function load() {
   });
 }
 // Welcome video rotates daily (Lagos date): one per day, repeating. Day 0 = 2026-11-08.
-var BG_VIDS = ["youth_bg", "youth_bg_2", "youth_bg_3", "youth_bg_4"];
+var BG_VIDS = ["youth_bg", "youth_bg_2", "youth_bg_3", "youth_bg_4", "youth_bg_1"];
 function bgPick() {
   var t = (ME && ME.today) || "";
   var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t), ms;
