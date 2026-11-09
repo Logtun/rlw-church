@@ -113,19 +113,34 @@ function load() {
     if (WV.pend) { WV.pend = false; if (ME.voice) setTimeout(function () { requestAnimationFrame(function () { wvPlay(); }); }, 400); else wvStop(); }
   });
 }
-// Welcome video rotates daily (Lagos date): one per day, repeating. Day 0 = 2026-11-08.
+// Welcome video rotates every minute (clock-based, so everyone sees the same one), cycling through all clips endlessly.
 var BG_VIDS = ["youth_bg", "youth_bg_2", "youth_bg_3", "youth_bg_4", "youth_bg_1"];
 function bgPick() {
-  var t = (ME && ME.today) || "";
-  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t), ms;
-  if (m) ms = Date.UTC(+m[1], +m[2] - 1, +m[3]);
-  else { var d = new Date(Date.now() + 3600000); ms = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); }
-  var n = Math.floor((ms - Date.UTC(2026, 10, 8)) / 86400000);
-  var k = ((n % BG_VIDS.length) + BG_VIDS.length) % BG_VIDS.length;
-  return BG_VIDS[k];
+  var n = Math.floor(Date.now() / 60000);
+  return BG_VIDS[((n % BG_VIDS.length) + BG_VIDS.length) % BG_VIDS.length];
+}
+var BG_TIMER = null;
+function bgTick() {
+  var v = document.querySelector("video.hero-bg");
+  if (!v) return;
+  var want = bgPick();
+  if (v.getAttribute("data-bg") === want) return;
+  v.setAttribute("data-bg", want);
+  v.style.opacity = "0";
+  setTimeout(function () {
+    v.poster = "bg/" + want + "_poster.jpg";
+    v.src = "bg/" + want + ".mp4";
+    try { v.load(); var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+    v.style.opacity = "";
+  }, 400);
+}
+function bgStart() {
+  if (BG_TIMER) return;
+  BG_TIMER = setInterval(bgTick, 5000);
 }
 function start() {
   $("login").hidden = true; $("app").hidden = false;
+  bgStart();
   routeHash();
   $("main").innerHTML = '<p class="muted">Loading...</p>';
   load().catch(function () {});
@@ -937,7 +952,7 @@ R.home = function () {
   var up = (D.events || []).filter(function (e) { return e.date >= ME.today; }).slice(0, 3);
   var g = rosterGroups();
   var open = (D.actions || []).filter(function (a) { return !a.done; }).length;
-  var h = '<section class="hero hero-vid"><video class="hero-bg" autoplay muted loop playsinline preload="auto" poster="bg/' + bgPick() + '_poster.jpg" aria-hidden="true"><source src="bg/' + bgPick() + '.mp4" type="video/mp4"></video><div class="hero-ov"></div><div class="hero-in"><p class="eyebrow">Welcome to the</p><h2>Youth Cave</h2><p>' + fdate(ME.today, true) + ".<br>Everything for our youth in one place.</p></div></section>";
+  var h = '<section class="hero hero-vid"><video class="hero-bg" autoplay muted loop playsinline preload="auto" data-bg="' + bgPick() + '" style="transition:opacity .4s" poster="bg/' + bgPick() + '_poster.jpg" src="bg/' + bgPick() + '.mp4" aria-hidden="true"></video><div class="hero-ov"></div><div class="hero-in"><p class="eyebrow">Welcome to the</p><h2>Youth Cave</h2><p>' + fdate(ME.today, true) + ".<br>Everything for our youth in one place.</p></div></section>";
   h += '<a class="wa-join" href="https://chat.whatsapp.com/GZ4hiqMFYqNL0cRPoIWazG" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3c-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.2-.3-.2-.5-.3z"/></svg><span><b>Join the Youth WhatsApp group</b><small>Chat, updates and reminders with everyone</small></span><span class="wa-go">Join</span></a>';
   h += tilesHTML();
   h += cdHTML();
