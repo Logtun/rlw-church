@@ -2,7 +2,7 @@
   "cleanUrls": true,
   "redirects": [
     {
-      "source": "/:t(firsttimers|workers|birthdays|quiz|youth|records)",
+      "source": "/:t(firsttimers|workers|birthdays|quiz|youth|records|graphics)",
       "destination": "/:t/",
       "permanent": false
     }
@@ -13,15 +13,15 @@
       "destination": "https://rlw-church.sites.tab.bot/api/sermons"
     },
     {
-      "source": "/:t(firsttimers|workers|birthdays|quiz|youth|records)/",
+      "source": "/:t(firsttimers|workers|birthdays|quiz|youth|records|graphics)/",
       "destination": "https://rlw-church.sites.tab.bot/:t/"
     },
     {
-      "source": "/:t(firsttimers|workers|birthdays|quiz|youth|records)",
+      "source": "/:t(firsttimers|workers|birthdays|quiz|youth|records|graphics)",
       "destination": "https://rlw-church.sites.tab.bot/:t/"
     },
     {
-      "source": "/:t(firsttimers|workers|birthdays|quiz|youth|records)/:path(.*)",
+      "source": "/:t(firsttimers|workers|birthdays|quiz|youth|records|graphics)/:path(.*)",
       "destination": "https://rlw-church.sites.tab.bot/:t/:path"
     }
   ],

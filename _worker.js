@@ -1,5 +1,5 @@
 // RCCG Rivers of Living Water Parish - unified site.
-// Serves the homepage files and passes /firsttimers, /workers, /birthdays, /quiz, /youth and /records to each tool's own site.
+// Serves the homepage files and passes /firsttimers, /workers, /birthdays, /quiz, /youth, /records and /graphics to each tool's own site.
 // /api/sermons serves the church YouTube channel's latest videos (cached). /manifest.webmanifest and /sw.js (plain files) make the site an installable app.
 // No data lives here: every tool keeps its own storage. Domain-agnostic: links use the request's own origin.
 const PROXY_KEY = "REPLACE_WITH_YOUR_PROXY_KEY"; // shared with the tools so they trust the visitor IP and base address we forward
@@ -10,6 +10,7 @@ const TOOLS = {
   quiz: { up: "https://rlw-bible-quiz.sites.tab.bot", name: "Bible Quiz Night" },
   youth: { up: "https://rlw-youth.sites.tab.bot", name: "Youth Cave" },
   records: { up: "https://rlw-records.sites.tab.bot", name: "Ushering & Records" },
+  graphics: { up: "https://rlw-graphics.sites.tab.bot", name: "Graphics Generator" },
 };
 const HOP = ["host", "connection", "keep-alive", "transfer-encoding", "upgrade", "proxy-connection", "te", "trailer",
   "cf-connecting-ip", "cf-ipcountry", "cf-ray", "cf-visitor", "cf-worker", "x-real-ip", "x-forwarded-host", "x-forwarded-proto",
@@ -127,7 +128,7 @@ export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
     if (url.pathname === "/api/sermons") return sermons(req, env, ctx);
-    const m = url.pathname.match(/^\/(firsttimers|workers|birthdays|quiz|youth|records)(\/.*)?$/i);
+    const m = url.pathname.match(/^\/(firsttimers|workers|birthdays|quiz|youth|records|graphics)(\/.*)?$/i);
     if (m) {
       const tool = m[1].toLowerCase();
       if (!m[2] || m[1] !== tool) return Response.redirect(url.origin + "/" + tool + (m[2] || "/") + url.search, 301);
