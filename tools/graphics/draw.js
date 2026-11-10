@@ -5,7 +5,8 @@
     l2: "Rivers of Living Water Parish",
     address: "2, Restoration Avenue, Off Igodo Road, Magboro",
     contact: "riversoflivingwater500@gmail.com",
-    yt: "YouTube @riversoflivingwaterparish"
+    yt: "YouTube @riversoflivingwaterparish",
+    web: "rlw-parish.vercel.app"
   };
   var NAVY = "#1B2A6B", NAVY_D = "#0F1A4A", GREEN = "#0A8F4A", GOLD = "#D4A62A", GOLD_L = "#F0D78A", CREAM = "#F7F3EA";
   var SANS = "Montserrat, 'Segoe UI', Arial, sans-serif", SERIF = "'Playfair Display', Georgia, serif";
@@ -104,21 +105,28 @@
     // o: x, y, w, h, align, dark, venue, u, bg
     var u = o.u;
     if (o.bg) { ctx.fillStyle = o.bg; ctx.fillRect(o.x0 != null ? o.x0 : o.x, o.y, o.bw || o.w, o.h); }
-    var venue = o.venue || CH.address, line2 = CH.contact + "   |   " + CH.yt;
-    var iconS = 34 * u, pad = 14 * u;
-    var v = fit(ctx, { text: venue, weight: 700, family: SANS, maxLines: 1 }, 31 * u, o.w - iconS - pad);
-    var c = fit(ctx, { text: line2, weight: 500, family: SANS, maxLines: 1 }, 22 * u, o.w);
+    var venue = o.venue || CH.address, line2 = CH.contact + "   |   " + CH.yt, web = CH.web;
+    var iconS = 32 * u, pad = 13 * u, gap = 9 * u;
+    var v = fit(ctx, { text: venue, weight: 700, family: SANS, maxLines: 1 }, 29 * u, o.w - iconS - pad);
+    var wb = fit(ctx, { text: web, weight: 800, family: SANS, maxLines: 1 }, 24 * u, o.w);
+    var c = fit(ctx, { text: line2, weight: 500, family: SANS, maxLines: 1 }, 20 * u, o.w);
     var cy = o.y + o.h / 2;
+    var total = v.size + wb.size + c.size + 2 * gap;
+    var y1 = cy - total / 2 + v.size * 0.85;
     font(ctx, 700, v.size, SANS); spacing(ctx, 0);
     var vw = width(ctx, venue) + iconS + pad;
     var vx = o.align === "center" ? o.x + (o.w - vw) / 2 : o.x;
-    var y1 = cy - (v.size + c.size + 12 * u) / 2 + v.size * 0.85;
     icon(ctx, "pin", vx, y1 - v.size * 0.85 - (iconS - v.size) / 2 + 2 * u, iconS, o.dark ? GREEN : GOLD);
     ctx.fillStyle = o.dark ? NAVY : "#FFFFFF"; ctx.textAlign = "left"; ctx.fillText(venue, vx + iconS + pad, y1);
+    var y2 = y1 + gap + wb.size;
+    font(ctx, 800, wb.size, SANS);
+    ctx.fillStyle = o.dark ? GREEN : GOLD_L;
+    var ww = width(ctx, web), wx = o.align === "center" ? o.x + (o.w - ww) / 2 : o.x;
+    ctx.fillText(web, wx, y2);
     font(ctx, 500, c.size, SANS);
     ctx.fillStyle = o.dark ? "#4a5378" : "rgba(255,255,255,.88)";
     var cw = width(ctx, line2), cx = o.align === "center" ? o.x + (o.w - cw) / 2 : o.x;
-    ctx.fillText(line2, cx, y1 + 12 * u + c.size);
+    ctx.fillText(line2, cx, y2 + gap + c.size);
   }
 
   // ---------- the main text stack, auto-fitted to its box ----------
