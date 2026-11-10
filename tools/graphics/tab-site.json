@@ -1,0 +1,10 @@
+{
+ "kind": "worker",
+ "entry": "_worker.js",
+ "worker": {
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": [
+   "global_fetch_strictly_public"
+  ]
+ }
+}
