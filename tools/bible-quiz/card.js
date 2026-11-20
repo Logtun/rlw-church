@@ -89,7 +89,7 @@
     c.fillStyle = GREEN2; c.font = `700 30px ${SANS}`; c.fillText(v.r + " (KJV)", W / 2, vy + 2);
     // footer
     c.fillStyle = "rgba(255,255,255,0.88)"; c.font = `700 30px ${SANS}`; c.fillText("Rivers of Living Water Parish", W / 2, H - 84);
-    c.fillStyle = "rgba(255,255,255,0.5)"; c.font = `500 24px ${SANS}`; c.fillText(o.site || "rlw-bible-quiz.sites.tab.bot", W / 2, H - 52);
+    c.fillStyle = "rgba(255,255,255,0.5)"; c.font = `500 24px ${SANS}`; c.fillText(o.site || "www.riversoflivingwater.site/quiz/", W / 2, H - 52);
     return cv;
   }
   const toBlob = (cv, type, q) => new Promise((res) => cv.toBlob((b) => res(b), type, q));

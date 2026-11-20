@@ -199,7 +199,7 @@ function renderView() {
     const text = `I finished #${res.rank} of ${res.players} at RLW Bible Quiz Night (${res.correct}/${res.total} correct, ${fmt(res.score)} points). Rivers of Living Water Parish. ${QBASE}/`;
     view.innerHTML = `<div class="card center"><span class="pill">Final results</span><p class="status-big">You finished ${ordinal(res.rank)}</p><p style="font-size:20px;font-weight:800">${fmt(res.score)} points · ${res.correct}/${res.total} correct</p><p class="muted" style="margin:4px 0 0">#${res.rank} of ${res.players} player${res.players === 1 ? "" : "s"}${res.best_streak > 1 ? ` · best streak ${res.best_streak}` : ""}</p>
       <div id="myCard" class="center" style="margin-top:16px"></div></div>
-      <div class="card" style="margin-top:14px"><h2>Podium</h2>${pqPodiumHTML(st.podium || [], { mini: true })}</div>
+      <div class="card" style="margin-top:14px"><h2 class="center">Podium</h2>${pqPodiumHTML(st.podium || [], { mini: true })}</div>
       <div class="row" style="justify-content:center;margin-top:16px"><a class="btn" href="solo.html">Practice solo</a><a class="btn ghost" href="play.html">Join another game</a></div>`;
     pqConfetti(view.querySelector(".podium"));
     // personalised share card (2026-11-07): drawn on the phone; uploaded once so the WhatsApp link previews it
