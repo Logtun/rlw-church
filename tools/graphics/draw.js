@@ -238,6 +238,79 @@
   }
 
   // ---------- layouts ----------
+
+  // Spotlight only: sample a small, centered crop of the already-loaded photo.
+  // Keep one color per image across all export sizes. Nothing leaves the device.
+  var spotlightColors = typeof WeakMap === "function" ? new WeakMap() : null;
+  function footerLuminance(rgb) {
+    function linear(c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+    return 0.2126 * linear(rgb[0]) + 0.7152 * linear(rgb[1]) + 0.0722 * linear(rgb[2]);
+  }
+  function footerRGB(hue, light, sat) {
+    var a = sat * Math.min(light, 1 - light);
+    function channel(n) { var k = (n + hue * 12) % 12; return Math.round(255 * (light - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); }
+    return [channel(0), channel(8), channel(4)];
+  }
+  function sampleSpotlightColor(img) {
+    var w = 76, h = 95, sample = document.createElement("canvas");
+    sample.width = w; sample.height = h;
+    var ctx = sample.getContext("2d", { willReadFrequently: true });
+    var iw = img.naturalWidth, ih = img.naturalHeight, sw = Math.min(iw, ih * w / h), sh = Math.min(ih, iw * h / w);
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, (iw - sw) / 2, (ih - sh) / 2, sw, sh, 0, 0, w, h);
+    var px = ctx.getImageData(0, 0, w, h).data;
+    var bins = new Float64Array(24), hues = [], sats = [], weights = [], total = 0, range = 0.095, i, b;
+    function closeness(x, y) { var d = Math.abs(x - y); return Math.max(0, 1 - Math.min(d, 1 - d) / range); }
+    for (i = 0; i < px.length; i += 4) {
+      var r = px[i] / 255, g = px[i + 1] / 255, bl = px[i + 2] / 255, high = Math.max(r, g, bl), low = Math.min(r, g, bl), span = high - low;
+      if (high <= 0.11 || !span || px[i + 3] < 16) continue;
+      var sat = span / high;
+      if (sat <= 0.14) continue;
+      var hue = (high === r ? (g - bl) / span : high === g ? 2 + (bl - r) / span : 4 + (r - g) / span) / 6;
+      if (hue < 0) hue += 1;
+      // Use the same 8-bit HSV sampling as the photo palette preview.
+      hue = Math.floor(hue * 255) / 255; sat = Math.floor(sat * 255) / 255;
+      var wt = Math.pow(sat, 1.65) * Math.pow(Math.sin(Math.PI * high), 0.7) * (px[i + 3] / 255);
+      if (!wt) continue;
+      var near = Math.round(hue * bins.length);
+      for (b = near - 3; b <= near + 3; b++) {
+        var slot = (b + bins.length) % bins.length;
+        bins[slot] += wt * closeness(hue, slot / bins.length);
+      }
+      hues.push(hue); sats.push(sat); weights.push(wt); total += wt;
+    }
+    // Without meaningful color (e.g. a grayscale photo), retain parish green.
+    if (total < w * h * 0.01) return GREEN;
+    var best = 0;
+    for (b = 1; b < bins.length; b++) if (bins[b] > bins[best]) best = b;
+    var x = 0, y = 0, ss = 0, scale = 0, turn = 2 * Math.PI;
+    for (i = 0; i < hues.length; i++) {
+      var blend = weights[i] * closeness(hues[i], best / bins.length);
+      if (!blend) continue;
+      x += blend * Math.cos(turn * hues[i]); y += blend * Math.sin(turn * hues[i]);
+      ss += blend * sats[i]; scale += blend;
+    }
+    if (!scale) return GREEN;
+    var tint = (1 + Math.atan2(y, x) / turn) % 1, strength = Math.max(0.41, Math.min(0.63, ss / scale * 0.70));
+    var gold = footerLuminance([240, 215, 138]);
+    // Darken as needed to keep the gold URL and the existing soft white details legible.
+    for (var light = 0.275; light > 0.02; light -= 0.012) {
+      var rgb = footerRGB(tint, light, strength), base = footerLuminance(rgb);
+      var contact = footerLuminance(rgb.map(function (c) { return Math.round(0.12 * c + 0.88 * 255); }));
+      if ((Math.min(gold, contact) + 0.05) / (base + 0.05) >= 5.25) return "rgb(" + rgb.join(",") + ")";
+    }
+    return GREEN;
+  }
+  function spotlightFooter(img) {
+    if (!img || !img.naturalWidth || !img.naturalHeight) return GREEN;
+    var src = img.currentSrc || img.src, hit = spotlightColors && spotlightColors.get(img);
+    if (hit && hit.src === src) return hit.color;
+    var color = GREEN;
+    try { color = sampleSpotlightColor(img); } catch (e) { /* An unreadable photo should not break the export. */ }
+    if (spotlightColors) spotlightColors.set(img, { src: src, color: color });
+    return color;
+  }
+
   function render(canvas, W, H, d, o) {
     canvas.width = W; canvas.height = H;
     var ctx = canvas.getContext("2d"), u = Math.min(W, H) / 1080, land = W > H * 1.2, sq = !land && H < W * 1.1;
@@ -251,7 +324,7 @@
       vgrad(ctx, 0, 0, W, H, [[0, "rgba(12,20,58,.78)"], [0.35, "rgba(12,20,58,.52)"], [0.7, "rgba(10,16,48,.72)"], [1, "rgba(8,12,38,.94)"]]);
       var rg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.2, W / 2, H / 2, Math.max(W, H) * 0.75); rg.addColorStop(0, "rgba(0,0,0,0)"); rg.addColorStop(1, "rgba(0,0,0,.35)"); ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
       var hb = header(ctx, { x: M, y: M * 0.8, w: W - 2 * M, align: "center", logo: o.logoW, u: u, logoH: (land ? 110 : 120) * u });
-      ctx.fillStyle = GREEN; ctx.fillRect(0, H - footH, W, footH); ctx.fillStyle = GOLD; ctx.fillRect(0, H - footH, W, 6 * u);
+      ctx.fillStyle = spotlightFooter(img); ctx.fillRect(0, H - footH, W, footH); ctx.fillStyle = GOLD; ctx.fillRect(0, H - footH, W, 6 * u);
       footer(ctx, { x: M, y: H - footH + 6 * u, w: W - 2 * M, h: footH - 6 * u, align: "center", u: u, venue: d.venue });
       var bw = land ? W * 0.78 : W - 2 * M;
       drawStack(ctx, buildItems(d, Object.assign({ titleSize: land ? 140 : (sq ? 125 : 150) }, dark)), { x: (W - bw) / 2, y: hb + 50 * u, w: bw, h: H - footH - hb - 100 * u, align: "center" }, u);
