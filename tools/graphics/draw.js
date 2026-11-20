@@ -6,7 +6,7 @@
     address: "2, Restoration Avenue, Off Igodo Road, Magboro",
     contact: "riversoflivingwater500@gmail.com",
     yt: "YouTube @riversoflivingwaterparish",
-    web: "rlw-parish.vercel.app"
+    web: "www.riversoflivingwater.site"
   };
   var NAVY = "#1B2A6B", NAVY_D = "#0F1A4A", GREEN = "#0A8F4A", GOLD = "#D4A62A", GOLD_L = "#F0D78A", CREAM = "#F7F3EA";
   var SANS = "Montserrat, 'Segoe UI', Arial, sans-serif", SERIF = "'Playfair Display', Georgia, serif";
