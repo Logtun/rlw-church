@@ -235,22 +235,166 @@ var FORMS = {
   minutes: { title: "meeting", f: [["date", "Meeting date", "date", 1], ["title", "Meeting", "text", 0, "Youth Exco meeting"], ["attendees", "Attendees", "long", 0, "Who was there"], ["body", "Minutes", "long", 0, "What was discussed"]] },
   actions: { title: "decision or action item", f: [["what", "Decision or action", "text", 1], ["who", "Who is responsible", "text"], ["due", "Due date", "date"], ["done", "Done", "bool"]] },
   roster: { title: "duty", f: [["date", "Date", "date", 1], ["duty", "Duty", "duty", 1], ["person", "Assigned to", "text"]] },
-  exco: { title: "Exco member", f: [["name", "Name", "text", 1], ["role", "Role", "text", 1], ["phone", "Phone (optional)", "tel"], ["photo", "Photo", "image"], ["sort", "Order on the page (lower shows first)", "num"]] },
+  exco: { title: "Exco member", f: [["name", "Name", "text", 1], ["role", "Role", "text", 1], ["phone", "Phone (optional)", "tel"], ["photo", "Headshot photo", "portrait"], ["sort", "Order on the page (lower shows first)", "num"]] },
   members: { title: "member", f: [["name", "Member name", "text", 1], ["sort", "Order (optional, lower shows first)", "num"]] },
   expenses: { title: "expense", f: [["date", "Date", "date", 1], ["item", "Item or description", "text", 1, "Bus hire to youth rally"], ["category", "Category (pick one or type your own)", "cat", 1], ["amount", "Amount (\u20A6)", "money", 1], ["paid_to", "Paid to (optional)", "text", 0, "Shop, driver or vendor"], ["approved_by", "Approved by / paid by (optional)", "text", 0, "Name"], ["notes", "Notes (optional)", "long"], ["receipt", "Receipt photo or PDF (optional)", "doc"]] }
 };
 var EXP_CATS = ["Transport", "Refreshments", "Events", "Welfare", "Printing & Publicity", "Media & Equipment", "Outreach", "Other"];
-var modalSubmit = null;
+var modalSubmit = null, modalDispose = null;
+function releaseModal() { if (modalDispose) { modalDispose(); modalDispose = null; } }
 function openModal(title, html, onSubmit) {
+  releaseModal();
   $("mh").textContent = title; $("mform").innerHTML = html; modalSubmit = onSubmit;
   $("modal").hidden = false; document.body.style.overflow = "hidden";
   var f = $("mform").querySelector("input:not([type=hidden]):not([type=checkbox]),textarea,select"); if (f && window.innerWidth > 700) f.focus();
 }
-function closeModal() { $("modal").hidden = true; document.body.style.overflow = ""; modalSubmit = null; }
+function closeModal() { releaseModal(); $("modal").hidden = true; document.body.style.overflow = ""; modalSubmit = null; }
 $("mclose").addEventListener("click", closeModal);
 $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(); });
 document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
 $("mform").addEventListener("submit", function (e) { e.preventDefault(); if (modalSubmit) modalSubmit(); });
+
+// Photo framing is local until the Exco member form is saved.
+function portraitField(current) {
+  return '<div class="portrait"><label for="f_photo">Headshot photo</label>' +
+    '<input id="f_photo" type="file" accept="image/*" data-portrait aria-describedby="portrait-note">' +
+    '<input type="hidden" id="f_photo_key" value="' + esc(current) + '">' +
+    '<p class="portrait-note" id="portrait-note">Choose a photo, then frame it for the round profile icon.</p>' +
+    '<div class="fprev portrait-current" id="f_photo_prev" aria-label="Current headshot">' +
+    (current ? '<img alt="Current headshot" data-file="' + esc(current) + '"><button type="button" class="btn ghost sm" data-clear="f_photo">Remove photo</button>' : '') + '</div>' +
+    '<fieldset class="portrait-edit" hidden><legend>Headshot preview</legend>' +
+    '<p class="portrait-note" id="portrait-help">Drag the photo or use the arrows to center your face.</p>' +
+    '<div class="portrait-window" tabindex="0" role="group" aria-label="Circular preview. Arrow keys move the photo." aria-describedby="portrait-help">' +
+    '<canvas width="320" height="320" aria-hidden="true"></canvas></div>' +
+    '<div class="portrait-zoom"><label for="portrait-zoom">Zoom</label><input id="portrait-zoom" type="range" min="100" max="400" step="5" value="100" aria-valuetext="100%"><output for="portrait-zoom" aria-hidden="true">100%</output></div>' +
+    '<div class="portrait-move" role="group" aria-label="Move photo">' +
+    '<button class="btn ghost" type="button" data-face-move="left" aria-label="Move photo left">&larr;</button>' +
+    '<button class="btn ghost" type="button" data-face-move="up" aria-label="Move photo up">&uarr;</button>' +
+    '<button class="btn ghost" type="button" data-face-move="down" aria-label="Move photo down">&darr;</button>' +
+    '<button class="btn ghost" type="button" data-face-move="right" aria-label="Move photo right">&rarr;</button></div>' +
+    '<div class="portrait-options"><button type="button" class="btn ghost sm" data-face-reset>Reset framing</button>' +
+    '<button type="button" class="btn ghost sm" data-face-cancel>Discard new photo</button></div></fieldset>' +
+    '<p class="portrait-feedback" role="status" aria-live="polite" hidden></p></div>';
+}
+function wirePortrait(form, save) {
+  var wrap = form.querySelector(".portrait"), input = $("f_photo"), current = $("f_photo_prev");
+  var editor = wrap.querySelector("fieldset"), viewport = wrap.querySelector(".portrait-window");
+  var canvas = viewport.querySelector("canvas"), slider = $("portrait-zoom"), readout = wrap.querySelector("output");
+  var message = wrap.querySelector(".portrait-feedback"), directions = {left:[-1,0],up:[0,-1],down:[0,1],right:[1,0]};
+  var active = true, loading = false, saving = false, image = null, objectURL = null, seq = 0;
+  var x = 0, y = 0, zoom = 100, pointer = null, uploadedKey = null;
+  function status(text, error) {
+    message.textContent = text; message.hidden = !text; message.classList.toggle("err", Boolean(error));
+  }
+  function resetFile() {
+    seq++; pointer = null; uploadedKey = null; loading = false;
+    if (objectURL) URL.revokeObjectURL(objectURL);
+    objectURL = null; image = null; input.value = ""; editor.hidden = true; current.hidden = false;
+    viewport.classList.remove("is-dragging");
+  }
+  function busy() {
+    if (!active) return;
+    save.disabled = loading || saving; input.disabled = saving; editor.disabled = saving;
+    current.querySelectorAll("button").forEach(function (b) { b.disabled = saving; });
+  }
+  function size() { return Math.min(image.naturalWidth, image.naturalHeight) * 100 / zoom; }
+  function render(target) {
+    var edge = size(), half = edge / 2;
+    x = Math.max(half, Math.min(image.naturalWidth - half, x));
+    y = Math.max(half, Math.min(image.naturalHeight - half, y));
+    var c = target.getContext("2d");
+    if (!c) throw new Error("This browser couldn’t frame the photo.");
+    c.fillStyle = "#1b2a6b"; c.fillRect(0, 0, target.width, target.height);
+    c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+    c.drawImage(image, x - half, y - half, edge, edge, 0, 0, target.width, target.height);
+  }
+  function draw() {
+    slider.value = zoom; slider.setAttribute("aria-valuetext", zoom + "%"); readout.textContent = zoom + "%"; render(canvas);
+  }
+  function changed() { uploadedKey = null; draw(); }
+  function center() { x = image.naturalWidth / 2; y = image.naturalHeight / 2; zoom = 100; changed(); }
+  function nudge(dx, dy) { if (image && !saving) { var step = size() / 32; x -= dx * step; y -= dy * step; changed(); } }
+  function badPhoto(text) { resetFile(); status(text, true); busy(); }
+  input.addEventListener("change", function () {
+    var file = input.files && input.files[0]; if (!active || saving || !file) return;
+    // Do not clear the selected filename while successfully decoding this choice.
+    seq++; var read = seq; uploadedKey = null; image = null; pointer = null;
+    viewport.classList.remove("is-dragging"); editor.hidden = true; current.hidden = false;
+    if (objectURL) URL.revokeObjectURL(objectURL); objectURL = null;
+    if (file.size > 32 * 1024 * 1024) { badPhoto("That photo is too large. Choose one under 32 MB."); return; }
+    loading = true; busy(); status("Opening photo…");
+    var img = new Image();
+    img.onload = function () {
+      if (!active || read !== seq) return;
+      if (!img.naturalWidth || !img.naturalHeight || img.naturalWidth * img.naturalHeight > 64000000) {
+        badPhoto("That photo is too large to frame. Try a smaller copy."); return;
+      }
+      image = img; loading = false;
+      try { center(); } catch (e) { badPhoto("Couldn’t preview that photo. Try a JPG, PNG or WebP."); return; }
+      editor.hidden = false; current.hidden = true; status(""); busy();
+    };
+    img.onerror = function () { if (active && read === seq) badPhoto("Couldn’t open that photo. Try a JPG, PNG or WebP."); };
+    try { objectURL = URL.createObjectURL(file); img.src = objectURL; }
+    catch (e) { badPhoto("Couldn’t open that photo. Try a JPG, PNG or WebP."); }
+  });
+  slider.addEventListener("input", function () { if (image && !saving) { zoom = Number(slider.value); changed(); } });
+  editor.querySelectorAll("[data-face-move]").forEach(function (b) {
+    b.addEventListener("click", function () { var d = directions[b.getAttribute("data-face-move")]; nudge(d[0], d[1]); });
+  });
+  editor.querySelector("[data-face-reset]").addEventListener("click", function () { if (image && !saving) center(); });
+  editor.querySelector("[data-face-cancel]").addEventListener("click", function () {
+    if (saving) return;
+    resetFile(); busy(); status("New photo discarded."); input.focus();
+  });
+  viewport.addEventListener("keydown", function (e) {
+    var d = e.key ? directions[e.key.slice(5).toLowerCase()] : null;
+    if (!e.key || e.key.indexOf("Arrow") !== 0 || !d) return;
+    e.preventDefault(); nudge(d[0], d[1]);
+  });
+  viewport.addEventListener("pointerdown", function (e) {
+    if (!image || saving || pointer || e.button !== 0) return;
+    pointer = { id: e.pointerId, x: e.clientX, y: e.clientY }; viewport.classList.add("is-dragging");
+    if (viewport.setPointerCapture) { try { viewport.setPointerCapture(e.pointerId); } catch (ignore) {} }
+  });
+  viewport.addEventListener("pointermove", function (e) {
+    if (!pointer || pointer.id !== e.pointerId || !image || saving) return;
+    var width = viewport.getBoundingClientRect().width; if (!width) return;
+    var scale = size() / width;
+    x -= (e.clientX - pointer.x) * scale; y -= (e.clientY - pointer.y) * scale;
+    pointer.x = e.clientX; pointer.y = e.clientY; changed();
+  });
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach(function (event) {
+    viewport.addEventListener(event, function (e) {
+      if (pointer && pointer.id === e.pointerId) { pointer = null; viewport.classList.remove("is-dragging"); }
+    });
+  });
+  function setSaving(v) { saving = v; busy(); }
+  function prepare(body) {
+    if (!image) return Promise.resolve();
+    if (uploadedKey) { body.photo = uploadedKey; return Promise.resolve(); }
+    status("Saving framed photo…");
+    return new Promise(function (resolve, reject) {
+      var cropped = document.createElement("canvas"); cropped.width = 640; cropped.height = 640;
+      render(cropped);
+      cropped.toBlob(function (blob) {
+        cropped.width = 0; cropped.height = 0;
+        if (!blob) { reject(new Error("Couldn’t save that crop. Try another photo.")); return; }
+        resolve(blob);
+      }, "image/jpeg", 0.88);
+    }).then(function (blob) {
+      if (!active) throw new Error("closed");
+      return api("api/upload", blob, "image/jpeg");
+    }).then(function (r) {
+      if (!active) throw new Error("closed");
+      if (!r.ok || !r.key) throw new Error(r.error || "Couldn’t upload the photo. Try again.");
+      uploadedKey = r.key; body.photo = r.key; status("");
+    });
+  }
+  return { prepare: prepare, setSaving: setSaving, clearStatus: function () { status(""); }, dispose: function () {
+    active = false; seq++; pointer = null; image = null; uploadedKey = null;
+    if (objectURL) URL.revokeObjectURL(objectURL); objectURL = null;
+  } };
+}
 
 function fieldHtml(fd, v) {
   var k = fd[0], lab = fd[1], t = fd[2], req = fd[3], ph = fd[4] || "";
@@ -259,6 +403,7 @@ function fieldHtml(fd, v) {
   if (t === "bool") return '<label class="ck"><input type="checkbox" id="' + id + '"' + (val ? " checked" : "") + "> " + esc(lab) + "</label>";
   var h = '<label for="' + id + '">' + esc(lab) + (req ? "" : "") + "</label>";
   if (t === "long") return h + '<textarea id="' + id + '" placeholder="' + esc(ph) + '"' + rq + ">" + esc(val) + "</textarea>";
+  if (t === "portrait") return portraitField(val);
   if (t === "image" || t === "doc") {
     return h + '<input type="file" id="' + id + '" accept="' + (t === "doc" ? "image/*,application/pdf" : "image/*") + '"><input type="hidden" id="' + id + '_key" value="' + esc(val) + '">' +
       '<div class="fprev" id="' + id + '_prev">' + (val ? (/\.pdf$/.test(val) ? "PDF attached" : '<img alt="" data-file="' + esc(val) + '">') + ' <button type="button" class="btn ghost sm" data-clear="' + id + '">Remove</button>' : "") + "</div>";
@@ -271,7 +416,7 @@ function fieldHtml(fd, v) {
   return h + '<input type="' + type + '" id="' + id + '" value="' + esc(val) + '"' + rq + extra + ">";
 }
 function wireFiles() {
-  $("mform").querySelectorAll("input[type=file]").forEach(function (inp) {
+  $("mform").querySelectorAll("input[type=file]:not([data-portrait])").forEach(function (inp) {
     inp.addEventListener("change", function () {
       var f = inp.files && inp.files[0]; if (!f) return;
       var prev = $(inp.id + "_prev"); prev.textContent = "Uploading...";
@@ -294,17 +439,40 @@ function readForm(sec) {
   FORMS[sec].f.forEach(function (fd) {
     var k = fd[0], t = fd[2], el = $("f_" + k);
     if (t === "hint") return;
-    if (t === "bool") o[k] = el.checked; else if (t === "image" || t === "doc") o[k] = $("f_" + k + "_key").value; else o[k] = el.value;
+    if (t === "bool") o[k] = el.checked; else if (t === "image" || t === "doc" || t === "portrait") o[k] = $("f_" + k + "_key").value; else o[k] = el.value;
   });
   return o;
 }
 function editRow(sec, row, extra, after) {
-  var F = FORMS[sec]; row = row || {};
+  var F = FORMS[sec], portrait = null; row = row || {};
   var html = F.f.map(function (fd) { return fieldHtml(fd, row[fd[0]]); }).join("") +
     '<p class="err" id="merr" role="alert"></p><div class="mf-actions">' +
     (row.id ? '<button type="button" class="btn danger" id="mdel">Delete</button>' : "") +
     '<button type="submit" class="btn pri" id="msave">' + (row.id ? "Save changes" : "Add") + "</button></div>";
   openModal((row.id ? "Edit " : "Add ") + F.title, html, function () {
+    if (portrait) {
+      var save = $("msave"), err = $("merr"), del = $("mdel");
+      if (save.disabled) return;
+      var excoBody = readForm(sec);
+      if (!excoBody.name.trim() || !excoBody.role.trim()) { err.textContent = "Enter a name and role before saving."; return; }
+      if (row.id) excoBody.id = row.id;
+      if (extra) for (var extraKey in extra) excoBody[extraKey] = extra[extraKey];
+      function currentModal() { return !$("modal").hidden && $("msave") === save; }
+      function saving(value) { portrait.setSaving(value); if (del) del.disabled = value; }
+      saving(true); err.textContent = "";
+      Promise.resolve().then(function () { return portrait.prepare(excoBody); }).then(function () {
+        if (!currentModal()) return null;
+        return api("api/save/exco", excoBody);
+      }).then(function (r) {
+        if (!r || !currentModal()) return;
+        if (!r.ok) { saving(false); err.textContent = r.error; return; }
+        closeModal(); toast(row.id ? "Saved" : "Added"); (after || refresh)();
+      }).catch(function (e) {
+        if (!currentModal()) return;
+        saving(false); portrait.clearStatus(); err.textContent = e.message || "Couldn’t save. Please try again.";
+      });
+      return;
+    }
     var body = readForm(sec); if (row.id) body.id = row.id; if (extra) for (var k in extra) body[k] = extra[k];
     $("msave").disabled = true;
     api("api/save/" + sec, body).then(function (r) {
@@ -321,6 +489,7 @@ function editRow(sec, row, extra, after) {
       }
     }).catch(function () {});
   });
+  if (sec === "exco") { portrait = wirePortrait($("mform"), $("msave")); modalDispose = portrait.dispose; }
   wireFiles();
   if (row.id) $("mdel").addEventListener("click", function () { delRow(sec, row.id, after); });
 }

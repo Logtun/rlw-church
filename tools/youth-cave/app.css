@@ -486,3 +486,27 @@ textarea.shr-t{min-height:170px;font-size:15px;line-height:1.45}
 [data-theme=dark] .rmst-b.pend{background:#2d2712;color:#E0BE4A;border-color:#6b5d2e}
 [data-theme=dark] .rmst-b.none{background:#1c222c;color:var(--muted);border-color:var(--line)}
 [data-theme=dark] .rmw{background:#2d2712;color:#E0BE4A}
+
+/* Youth Exco's photo editor: the same circular aperture as the profile icon. */
+.portrait .portrait-note{margin:6px 0 0;color:var(--muted);font-size:.875rem;line-height:1.4}
+.portrait .portrait-edit{min-inline-size:0;margin:12px 0 0;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.portrait .portrait-edit legend{padding:0 5px;font-weight:700;color:var(--ink)}
+.portrait-edit .portrait-note{margin:0 0 10px;text-align:center}
+.portrait .portrait-window{width:min(100%,208px);aspect-ratio:1 / 1;margin:0 auto 14px;overflow:hidden;border-radius:50%;background:var(--navy);box-shadow:0 0 0 2px #fff,0 0 0 4px var(--green);cursor:grab;touch-action:none;user-select:none}
+.portrait .portrait-window.is-dragging{cursor:grabbing}
+.portrait-window canvas{display:block;width:100%;height:100%;pointer-events:none}
+.portrait-window:focus-visible,.portrait :is(button,input):focus-visible{outline:3px solid var(--gold);outline-offset:4px}
+.portrait .portrait-zoom{display:grid;grid-template-columns:auto minmax(0,1fr) 4ch;gap:9px;align-items:center;margin:0 auto 5px;max-width:330px}
+.portrait-zoom label{margin:0}
+.portrait-zoom input[type=range]{width:100%;min-width:0;height:44px;margin:0;padding:0;border:0;background:transparent;accent-color:var(--green)}
+.portrait-zoom output{text-align:right;color:var(--muted);font-size:.875rem;font-variant-numeric:tabular-nums}
+.portrait .portrait-move,.portrait .portrait-options{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.portrait .portrait-move .btn{width:44px;min-height:44px;padding:0;font-size:1.15rem}
+.portrait .portrait-options{margin-top:6px}
+.portrait .portrait-options .btn{min-height:44px}
+.portrait .portrait-current img{width:62px;height:62px;border-radius:50%;object-fit:cover}
+.portrait .portrait-current:empty{display:none}
+.portrait .portrait-feedback{margin:8px 0 0;font-size:.875rem}
+.portrait [hidden]{display:none!important}
+
+.portrait #f_photo{display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%}
